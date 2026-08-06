@@ -53,7 +53,7 @@ mavenPublishing {
                     "tooling for the JVM: every example is a passing test. Zero dependencies."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/tibtof/tddoc")
+        url.set("https://github.com/tddoc/tddoc")
 
         licenses {
             license {
@@ -72,9 +72,9 @@ mavenPublishing {
         }
 
         scm {
-            url.set("https://github.com/tibtof/tddoc")
-            connection.set("scm:git:git://github.com/tibtof/tddoc.git")
-            developerConnection.set("scm:git:ssh://git@github.com/tibtof/tddoc.git")
+            url.set("https://github.com/tddoc/tddoc")
+            connection.set("scm:git:git://github.com/tddoc/tddoc.git")
+            developerConnection.set("scm:git:ssh://git@github.com/tddoc/tddoc.git")
         }
     }
 }

@@ -72,7 +72,7 @@ public class SiteGen {
         channel = opts.getOrDefault("channel", version);
         siteName = opts.getOrDefault("name", "tddoc");
         tagline = opts.getOrDefault("tagline", "docs that are proven, not promised");
-        repo = opts.getOrDefault("repo", "https://github.com/tibtof/tddoc");
+        repo = opts.getOrDefault("repo", "https://github.com/tddoc/tddoc");
         glyph = opts.getOrDefault("glyph", siteName.substring(0, 1));
         // Where "edit this page" links point: the doc-test sources on GitHub.
         editBase = opts.getOrDefault("editBase", repo + "/blob/main/" + docsDir + "/");
