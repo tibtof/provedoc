@@ -27,6 +27,14 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+// The published jar is directly runnable (java -jar tddoc-X.Y.Z.jar) and thus
+// jbang-friendly; the copy-paste path (java SiteGen.java) is unaffected.
+tasks.jar {
+    manifest {
+        attributes("Main-Class" to "dev.tddoc.SiteGen")
+    }
+}
+
 tasks.withType<Javadoc>().configureEach {
     (options as StandardJavadocDocletOptions).addStringOption("source", "21")
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
