@@ -1,8 +1,8 @@
-# provedoc
+# tddoc
 
 **Docs that are proven, not promised.**
 
-provedoc turns executable tests into published articles. Prose and code live in
+tddoc turns executable tests into published articles. Prose and code live in
 the same test file; every example on the resulting site is the body of a real
 test that ran in CI. Examples cannot rot: if one breaks, the build breaks, and
 the broken version never reaches your readers.
@@ -27,7 +27,7 @@ flags); theming and the versioned-deploy workflow templates are next.
 ## What it looks like
 
 This repo documents itself with its own format. The example below,
-[`FirstArticleDocTest.java`](src/test/java/dev/provedoc/docs/FirstArticleDocTest.java),
+[`FirstArticleDocTest.java`](src/test/java/dev/tddoc/docs/FirstArticleDocTest.java),
 is a real test file in this repo, run by `./gradlew test` like any other test.
 It begins:
 
@@ -71,10 +71,10 @@ class FirstArticleDocTest {
 One command turns it into this page:
 
 ```bash
-java src/main/java/dev/provedoc/SiteGen.java --docs src/test/java/dev/provedoc/docs
+java src/main/java/dev/tddoc/SiteGen.java --docs src/test/java/dev/tddoc/docs
 ```
 
-![The article above, rendered: provedoc header with version selector, prose interleaved with highlighted code blocks](docs/assets/first-article.png)
+![The article above, rendered: tddoc header with version selector, prose interleaved with highlighted code blocks](docs/assets/first-article.png)
 
 For a full production deployment — many guides, per-release frozen snapshots
 with a live version selector, Javadoc folded in — see
@@ -110,7 +110,7 @@ out of scope.
 
 ## The bigger picture
 
-provedoc is layer one of a three-layer idea:
+tddoc is layer one of a three-layer idea:
 
 1. **This tool** — doctest-first article tooling for the JVM.
 2. **A protocol** — a language-agnostic format contract plus a provenance

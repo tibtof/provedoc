@@ -1,4 +1,4 @@
-package dev.provedoc;
+package dev.tddoc;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * provedoc: doc-tests in, article site out. Single file, zero dependencies, run with
+ * tddoc: doc-tests in, article site out. Single file, zero dependencies, run with
  * `java SiteGen.java` (Java 21+), so any repo can copy this file and own it forever.
  *
  * <p>Content comes from "doc-tests" (*DocTest.java files in the --docs directory):
@@ -47,7 +47,7 @@ public class SiteGen {
     static String channel = "";
     // Branding: everything project-specific arrives as a flag, so the generator
     // itself stays project-neutral (first slice of generalizing out of fforj).
-    static String siteName = "provedoc";
+    static String siteName = "tddoc";
     static String tagline = "";
     static String repo = "";
     static String glyph = "p";
@@ -70,9 +70,9 @@ public class SiteGen {
         // at page load, so frozen snapshots list versions released after them.
         prefix = opts.getOrDefault("prefix", "");
         channel = opts.getOrDefault("channel", version);
-        siteName = opts.getOrDefault("name", "provedoc");
+        siteName = opts.getOrDefault("name", "tddoc");
         tagline = opts.getOrDefault("tagline", "docs that are proven, not promised");
-        repo = opts.getOrDefault("repo", "https://github.com/tibtof/provedoc");
+        repo = opts.getOrDefault("repo", "https://github.com/tibtof/tddoc");
         glyph = opts.getOrDefault("glyph", siteName.substring(0, 1));
         // Where "edit this page" links point: the doc-test sources on GitHub.
         editBase = opts.getOrDefault("editBase", repo + "/blob/main/" + docsDir + "/");

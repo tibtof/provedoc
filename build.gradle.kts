@@ -36,16 +36,16 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
 
-    coordinates(group.toString(), "provedoc", version.toString())
+    coordinates(group.toString(), "tddoc", version.toString())
 
     pom {
-        name.set("provedoc")
+        name.set("tddoc")
         description.set(
-            "provedoc — docs that are proven, not promised. Doctest-first article " +
+            "tddoc — docs that are proven, not promised. Doctest-first article " +
                     "tooling for the JVM: every example is a passing test. Zero dependencies."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/tibtof/provedoc")
+        url.set("https://github.com/tibtof/tddoc")
 
         licenses {
             license {
@@ -64,9 +64,9 @@ mavenPublishing {
         }
 
         scm {
-            url.set("https://github.com/tibtof/provedoc")
-            connection.set("scm:git:git://github.com/tibtof/provedoc.git")
-            developerConnection.set("scm:git:ssh://git@github.com/tibtof/provedoc.git")
+            url.set("https://github.com/tibtof/tddoc")
+            connection.set("scm:git:git://github.com/tibtof/tddoc.git")
+            developerConnection.set("scm:git:ssh://git@github.com/tibtof/tddoc.git")
         }
     }
 }

@@ -1,1 +1,1 @@
-rootProject.name = "provedoc"
+rootProject.name = "tddoc"
