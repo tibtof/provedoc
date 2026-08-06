@@ -22,7 +22,7 @@ original design rationale).
 | Single-file contract | `SiteGen.java` MUST stay one file, runnable via `java SiteGen.java` | Any repo can copy the file and own it forever; both the Maven artifact and the pasted file must always work |
 | Config parsing | Hand-rolled, stdlib only — no YAML/JSON libs | Zero-dep rule; see issue #2 for the flat tddoc.yml subset |
 | Test framework | JUnit Jupiter only, no mocking, no assertion libs | fforj house rules |
-| Coordinates | `dev.tddoc:tddoc` | `tddoc.dev` was available 2026-08-06 — register it before publishing |
+| Coordinates | `dev.tddoc:tddoc` | `tddoc.dev` registered 2026-08-06 (owned) — Central Portal namespace verification (DNS TXT) still pending before first publish |
 
 ## The format (what doc-tests look like)
 
