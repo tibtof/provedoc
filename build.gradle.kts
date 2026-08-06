@@ -27,6 +27,14 @@ tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
 
+// The published jar is directly runnable (java -jar tddoc-X.Y.Z.jar) and thus
+// jbang-friendly; the copy-paste path (java SiteGen.java) is unaffected.
+tasks.jar {
+    manifest {
+        attributes("Main-Class" to "dev.tddoc.SiteGen")
+    }
+}
+
 tasks.withType<Javadoc>().configureEach {
     (options as StandardJavadocDocletOptions).addStringOption("source", "21")
     (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:all,-missing", "-quiet")
@@ -36,16 +44,16 @@ mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     signAllPublications()
 
-    coordinates(group.toString(), "provedoc", version.toString())
+    coordinates(group.toString(), "tddoc", version.toString())
 
     pom {
-        name.set("provedoc")
+        name.set("tddoc")
         description.set(
-            "provedoc — docs that are proven, not promised. Doctest-first article " +
+            "tddoc — docs that are proven, not promised. Doctest-first article " +
                     "tooling for the JVM: every example is a passing test. Zero dependencies."
         )
         inceptionYear.set("2026")
-        url.set("https://github.com/tibtof/provedoc")
+        url.set("https://github.com/tddoc/tddoc")
 
         licenses {
             license {
@@ -64,9 +72,9 @@ mavenPublishing {
         }
 
         scm {
-            url.set("https://github.com/tibtof/provedoc")
-            connection.set("scm:git:git://github.com/tibtof/provedoc.git")
-            developerConnection.set("scm:git:ssh://git@github.com/tibtof/provedoc.git")
+            url.set("https://github.com/tddoc/tddoc")
+            connection.set("scm:git:git://github.com/tddoc/tddoc.git")
+            developerConnection.set("scm:git:ssh://git@github.com/tddoc/tddoc.git")
         }
     }
 }

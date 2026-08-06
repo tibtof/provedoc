@@ -1,4 +1,4 @@
-package dev.provedoc.docs;
+package dev.tddoc.docs;
 
 import org.junit.jupiter.api.Test;
 
