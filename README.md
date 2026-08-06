@@ -19,9 +19,66 @@ engine of [fforj](https://github.com/fforj/fforj) (live at
 real behavioral diffs between them, and a GitHub Pages deploy where a failing
 example can never ship. This repo is that engine becoming a general tool.
 
-Current milestone: generalize the fforj-specific parts (branding, source
-locations, theming) behind configuration while keeping the copy-paste contract
-below.
+Current milestone: generalize the fforj-specific parts behind configuration
+while keeping the copy-paste contract below. Branding and locations are done
+(`--name`, `--tagline`, `--repo`, `--glyph`, `--docs`, `--install`, `--editBase`
+flags); theming and the versioned-deploy workflow templates are next.
+
+## What it looks like
+
+This repo documents itself with its own format. The example below,
+[`FirstArticleDocTest.java`](src/test/java/dev/provedoc/docs/FirstArticleDocTest.java),
+is a real test file in this repo, run by `./gradlew test` like any other test.
+It begins:
+
+```java
+/// ---
+/// title: Your first proven article
+/// slug: first-article
+/// order: 1
+/// summary: Prose in /// comments, examples as real tests. An example that breaks stops the build.
+/// ---
+///
+/// This page is generated from an ordinary JUnit test file. The prose you are
+/// reading lives in `///` comment blocks; every code example below is the body
+/// of a real `@Test` method that ran, and passed, before this page was built.
+/// ...
+class FirstArticleDocTest {
+
+    // site:include
+    sealed interface Shipment {
+        record InTransit(String location) implements Shipment {}
+        record Delivered(String signedBy) implements Shipment {}
+    }
+
+    /// ## Examples are tests
+    ///
+    /// The reader sees a code block; CI sees an assertion. Both see the same
+    /// file, so they cannot disagree:
+    @Test
+    void pattern_matching_reads_the_state() {
+        Shipment s = new Shipment.Delivered("T. Reader");
+        String status = switch (s) {
+            case Shipment.InTransit(String where) -> "via " + where;
+            case Shipment.Delivered(String who) -> "signed by " + who;
+        };
+        assertEquals("signed by T. Reader", status);
+    }
+    // ...
+}
+```
+
+One command turns it into this page:
+
+```bash
+java src/main/java/dev/provedoc/SiteGen.java --docs src/test/java/dev/provedoc/docs
+```
+
+![The article above, rendered: provedoc header with version selector, prose interleaved with highlighted code blocks](docs/assets/first-article.png)
+
+For a full production deployment — many guides, per-release frozen snapshots
+with a live version selector, Javadoc folded in — see
+[fforj.dev](https://fforj.dev), which this engine generates.
 
 ## The format
 

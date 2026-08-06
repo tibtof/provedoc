@@ -13,11 +13,10 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
- * The fforj documentation site generator. Single file, zero dependencies, run with
- * `java docs/SiteGen.java` (Java 21+), the same copy-paste-friendly ethos as the
- * library itself.
+ * provedoc: doc-tests in, article site out. Single file, zero dependencies, run with
+ * `java SiteGen.java` (Java 21+), so any repo can copy this file and own it forever.
  *
- * <p>Content comes from "doc-tests" in src/test/java/dev/fforj/docs/*DocTest.java:
+ * <p>Content comes from "doc-tests" (*DocTest.java files in the --docs directory):
  * prose lives in /// markdown comment blocks, examples are the bodies of real @Test
  * methods (so CI proves every example compiles and behaves), and members marked with
  * a preceding `// site:include` line are rendered as code too. The generator
@@ -46,6 +45,14 @@ public class SiteGen {
     static Landing landing;
     static String prefix = "";
     static String channel = "";
+    // Branding: everything project-specific arrives as a flag, so the generator
+    // itself stays project-neutral (first slice of generalizing out of fforj).
+    static String siteName = "provedoc";
+    static String tagline = "";
+    static String repo = "";
+    static String glyph = "p";
+    static String editBase = "";
+    static String install = "";
 
     public static void main(String[] args) throws IOException {
         var opts = new LinkedHashMap<String, String>();
@@ -63,6 +70,13 @@ public class SiteGen {
         // at page load, so frozen snapshots list versions released after them.
         prefix = opts.getOrDefault("prefix", "");
         channel = opts.getOrDefault("channel", version);
+        siteName = opts.getOrDefault("name", "provedoc");
+        tagline = opts.getOrDefault("tagline", "docs that are proven, not promised");
+        repo = opts.getOrDefault("repo", "https://github.com/tibtof/provedoc");
+        glyph = opts.getOrDefault("glyph", siteName.substring(0, 1));
+        // Where "edit this page" links point: the doc-test sources on GitHub.
+        editBase = opts.getOrDefault("editBase", repo + "/blob/main/" + docsDir + "/");
+        install = opts.getOrDefault("install", "");
 
         List<Article> articles;
         try (Stream<Path> files = Files.list(docsDir)) {
@@ -409,7 +423,7 @@ public class SiteGen {
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>%s</title>
                 <meta name="description" content="%s">
-                <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23C0341D%%22>ﬀ</text></svg>">
+                <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23C0341D%%22>%s</text></svg>">
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -418,21 +432,20 @@ public class SiteGen {
                 <body>
                 <header class="top">
                   <div class="brand">
-                    <a class="wordmark" href="%sindex.html"><span class="lig">ﬀ</span>orj</a>
+                    <a class="wordmark" href="%sindex.html">%s</a>
                     <select id="vsel" aria-label="Documentation version"
                             data-prefix="%s" data-page="%s"><option>%s</option></select>
                   </div>
                   <nav>
                     <a href="%sindex.html#guides">Guides</a>
                     <a href="%sapi/index.html">API</a>
-                    <a href="https://github.com/fforj/fforj">GitHub</a>
+                    <a href="%s">GitHub</a>
                   </nav>
                 </header>
                 %s
                 <footer class="foot">
-                  <p><span class="lig rub">ﬀ</span>orj is MIT-licensed.
-                  Every example on this site is a test in the
-                  <a href="https://github.com/fforj/fforj">repository</a>;
+                  <p>Every example on this site is a test in the
+                  <a href="%s">repository</a>;
                   the suite ran green before this page was built.</p>
                 </footer>
                 <script>
@@ -474,8 +487,8 @@ public class SiteGen {
                 </script>
                 </body>
                 </html>
-                """.formatted(escape(title), escape(description), root, root,
-                prefix, page, escape(channel), root, root, body);
+                """.formatted(escape(title), escape(description), glyph, root, root,
+                escape(siteName), prefix, page, escape(channel), root, root, repo, body, repo);
     }
 
     static String landingPage(List<Article> articles, String version) {
@@ -484,22 +497,18 @@ public class SiteGen {
                 <main class="landing">
                 <section class="hero">
                   <div class="specimen">
-                    <div class="glyph">ﬀ</div>
-                    <div class="caption">U+FB00 &middot; LATIN SMALL LIGATURE FF</div>
+                    <div class="glyph">%s</div>
                   </div>
                   <div class="thesis">
-                    <h1><span class="rub">f</span>unctional <span class="rub">f</span>or Java</h1>
-                    <p class="sub">Four small types you'd otherwise re-implement in every project:
-                    <code>Result</code>, <code>Validated</code>, <code>NonEmptyList</code>,
-                    <code>Retry</code>. Java 21+. Zero runtime dependencies. A ligature's worth
-                    of library: two things, functional types and plain Java, set as one glyph.</p>
+                    <h1>%s</h1>
+                    <p class="sub">%s</p>
                   </div>
                 </section>
 
                 <section class="proof">
                   <div class="eyebrow">PROVEN, NOT PROMISED</div>
                   <p>This example is a test. It ran, and passed, before this page was built:</p>
-                """);
+                """.formatted(glyph, escape(siteName), escape(tagline)));
         body.append(codeBlock(landing.code()));
         body.append("<p class=\"more\"><a href=\"guides/").append(landing.article().slug())
                 .append("/index.html\">Read the ").append(escape(landing.article().title()))
@@ -514,34 +523,22 @@ public class SiteGen {
         }
         body.append("</div>\n</section>\n");
 
-        body.append("""
-                <section class="install">
-                  <div class="eyebrow">GET IT</div>
-                """);
-        body.append(codeBlock("// Gradle\nimplementation(\"dev.fforj:fforj:" + version + "\")"));
-        body.append("""
-                  <p>Or copy the source of the types you need into your project: every class
-                  stands alone by design, and behaves identically either way. The
-                  <a href="api/index.html">API reference</a> is the full Javadoc.</p>
-                </section>
-
-                <section class="ethos">
-                  <div class="eyebrow">DELIBERATELY NOT HERE</div>
-                  <ul>
-                    <li><strong>No IO monad.</strong> Virtual threads removed the practical need;
-                    the pure effect tracking that remains costs more than it pays in Java.</li>
-                    <li><strong>No tuples.</strong> Records exist.</li>
-                    <li><strong>No collections library.</strong> The stdlib is fine.</li>
-                    <li><strong>No type classes.</strong> Java's type system doesn't want them.</li>
-                  </ul>
-                  <p>The surface area is bounded on purpose. This library will not grow into the
-                  thing it replaces.</p>
-                </section>
-                </main>
-                """);
-        return shell("", "index.html", "ﬀorj · functional for Java",
-                "Result, Validated, NonEmptyList, Retry for Java 21+. Zero dependencies.",
-                body.toString());
+        // The install section only renders when the project passes an --install
+        // snippet ("{version}" inside it is replaced with the released version).
+        if (!install.isEmpty()) {
+            body.append("""
+                    <section class="install">
+                      <div class="eyebrow">GET IT</div>
+                    """);
+            body.append(codeBlock(install.replace("{version}", version)));
+            body.append("""
+                      <p>Or copy the source into your project: it behaves identically either
+                      way. The <a href="api/index.html">API reference</a> is the full Javadoc.</p>
+                    </section>
+                    """);
+        }
+        body.append("</main>\n");
+        return shell("", "index.html", siteName + " · " + tagline, tagline, body.toString());
     }
 
     static String articlePage(Article article, List<Article> all) {
@@ -557,12 +554,12 @@ public class SiteGen {
         for (var seg : article.segments()) {
             body.append(seg.kind().equals("md") ? md(seg.text()) : codeBlock(seg.text()));
         }
-        body.append("<p class=\"edit\"><a href=\"https://github.com/fforj/fforj/blob/main/src/test/java/dev/fforj/docs/")
+        body.append("<p class=\"edit\"><a href=\"").append(editBase)
                 .append(article.sourceFile())
                 .append("\">This page is generated from a test file. Read or improve it on GitHub.</a></p>\n");
         body.append("</main>\n</div>\n");
         return shell("../../", "guides/" + article.slug() + "/index.html",
-                article.title() + " · ﬀorj", article.summary(), body.toString());
+                article.title() + " · " + siteName, article.summary(), body.toString());
     }
 
     static void copyTree(Path from, Path to) throws IOException {
