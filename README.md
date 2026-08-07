@@ -152,21 +152,17 @@ Bound to `verify`, so the suite has passed before the site is built.
 <details>
 <summary><strong>Copy the file</strong> — own it forever</summary>
 
-Copy `SiteGen.java` into your repo and run it with the plain source launcher;
-see the contract below. Zero dependencies, no lock-in.
-</details>
-
-## The contract
-
-One file, zero dependencies. `SiteGen.java` runs via the plain source launcher:
+`SiteGen.java` is one file with zero dependencies. Copy it into your repo and
+run it with the plain source launcher:
 
 ```bash
-java SiteGen.java --version 1.2.3 --javadoc build/docs/javadoc --out build/site
+java SiteGen.java --docs src/test/java/your/pkg/docs --out build/site
 ```
 
-You can depend on the artifact, or copy the single file into your repo and own
-it forever. Both must always work; anything that breaks the copy-paste story is
-out of scope.
+This is a contract, not an accident: the artifact and the copied file must
+always both work, and anything that breaks the copy-paste story is out of
+scope.
+</details>
 
 ## The bigger picture
 
