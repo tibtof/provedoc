@@ -439,7 +439,7 @@ public class SiteGen {
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>%s</title>
                 <meta name="description" content="%s">
-                <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23C0341D%%22>%s</text></svg>">
+                <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23177245%%22>%s</text></svg>">
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -603,12 +603,12 @@ public class SiteGen {
 
     static final String CSS = """
             :root {
-              --paper: #FCFBF8; --ink: #1C1A16; --rubric: #C0341D; --muted: #6F6A5F;
+              --paper: #FCFBF8; --ink: #1C1A16; --rubric: #177245; --muted: #6F6A5F;
               --rule: #E6E2D8; --code-bg: #F5F3EC; --card: #FFFFFF;
             }
             @media (prefers-color-scheme: dark) {
               :root {
-                --paper: #181715; --ink: #E8E4DB; --rubric: #E25B3C; --muted: #9A947F;
+                --paper: #181715; --ink: #E8E4DB; --rubric: #3FAE72; --muted: #9A947F;
                 --rule: #2E2B26; --code-bg: #211F1B; --card: #1E1C19;
               }
             }
