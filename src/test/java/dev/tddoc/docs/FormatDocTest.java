@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// ## Prose is a markdown subset
 ///
 /// `///` blocks render as markdown: `##` and `###` headings, `-` bullet
-/// lists, **bold**, *italic*, `inline code`, and
-/// [links](https://github.com/tddoc/tddoc). That is the whole subset — it
+/// lists, **bold**, *italic*, `inline code`,
+/// [links](https://github.com/tddoc/tddoc), and fenced code blocks for
+/// snippets that are prose, not proof (install commands, build config —
+/// anything that is not a runnable example). That is the whole subset — it
 /// covers articles without dragging a markdown library into the single file.
 ///
 /// ## Members join the article with site:include

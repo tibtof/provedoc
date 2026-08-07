@@ -39,6 +39,7 @@ jobs:
           VERSION=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
           java src/main/java/dev/tddoc/SiteGen.java \
             --docs src/test/java/dev/tddoc/docs \
+            --glyph '✓' \
             --out build/site \
             --javadoc build/docs/javadoc \
             --version "${VERSION:-0.1.0}" \

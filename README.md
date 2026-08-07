@@ -103,15 +103,21 @@ selector.
 
 ## Using it
 
-Four tiers, in increasing order of commitment:
+Four tiers, in increasing order of commitment — pick yours:
 
-**Try it** — nothing to install beyond [jbang](https://jbang.dev):
+<details open>
+<summary><strong>jbang</strong> — try it, nothing to install</summary>
 
 ```bash
 jbang tddoc@tddoc --docs src/test/java/your/pkg/docs --out build/site
 ```
 
-**Gradle** — plugin id `dev.tddoc` (resolve from Maven Central):
+Needs only [jbang](https://jbang.dev); resolves the latest release from Maven
+Central.
+</details>
+
+<details>
+<summary><strong>Gradle</strong> — plugin id <code>dev.tddoc</code></summary>
 
 ```kotlin
 // settings.gradle.kts
@@ -126,8 +132,10 @@ tddoc {
 ```
 
 `./gradlew tddocSite` runs your tests first, then generates `build/site`.
+</details>
 
-**Maven** — goal `tddoc:site`, bound to `verify`:
+<details>
+<summary><strong>Maven</strong> — goal <code>tddoc:site</code></summary>
 
 ```xml
 <plugin>
@@ -138,19 +146,23 @@ tddoc {
 </plugin>
 ```
 
-**Own it** — copy `SiteGen.java` into your repo; see the contract below.
+Bound to `verify`, so the suite has passed before the site is built.
+</details>
 
-## The contract
+<details>
+<summary><strong>Copy the file</strong> — own it forever</summary>
 
-One file, zero dependencies. `SiteGen.java` runs via the plain source launcher:
+`SiteGen.java` is one file with zero dependencies. Copy it into your repo and
+run it with the plain source launcher:
 
 ```bash
-java SiteGen.java --version 1.2.3 --javadoc build/docs/javadoc --out build/site
+java SiteGen.java --docs src/test/java/your/pkg/docs --out build/site
 ```
 
-You can depend on the artifact, or copy the single file into your repo and own
-it forever. Both must always work; anything that breaks the copy-paste story is
-out of scope.
+This is a contract, not an accident: the artifact and the copied file must
+always both work, and anything that breaks the copy-paste story is out of
+scope.
+</details>
 
 ## The bigger picture
 

@@ -19,14 +19,71 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// summary: Every flag, demonstrated by a test that runs SiteGen for real.
 /// ---
 ///
-/// Three ways to run tddoc, in increasing order of commitment:
+/// Four ways to run tddoc, in increasing order of commitment. All four end
+/// at the same place — the plugins are thin wrappers calling the same
+/// `SiteGen.main` the CLI and the copied file use, so there is no second
+/// code path to drift.
 ///
-/// - `jbang tddoc@tddoc --docs src/test/java/... --out build/site` — nothing
-///   to install beyond [jbang](https://jbang.dev).
-/// - Depend on `dev.tddoc:tddoc` from Maven Central and run the jar
-///   (`java -jar tddoc-x.y.z.jar`) from your build.
-/// - Copy `SiteGen.java` into your repo and run `java SiteGen.java` — one
-///   file, zero dependencies, yours forever.
+/// ## jbang — nothing to install
+///
+/// [jbang](https://jbang.dev) resolves the latest release from Maven Central:
+///
+/// ```
+/// jbang tddoc@tddoc --docs src/test/java/your/pkg/docs --out build/site
+/// ```
+///
+/// ## Gradle
+///
+/// Plugin id `dev.tddoc`, resolved from Maven Central:
+///
+/// ```
+/// // settings.gradle.kts
+/// pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
+///
+/// // build.gradle.kts
+/// plugins { id("dev.tddoc") version "<version>" }
+/// tddoc {
+///     docs = file("src/test/java/your/pkg/docs")
+///     name = "yourproject"
+///     tagline = "your docs, proven"
+///     repo = "https://github.com/you/yourproject"
+///     javadoc = layout.buildDirectory.dir("docs/javadoc")
+/// }
+/// ```
+///
+/// `./gradlew tddocSite` runs your tests first (the task depends on `test`),
+/// then generates `build/site`, up-to-date-checked like any Gradle task.
+/// Every extension property mirrors a CLI flag; all are optional except
+/// `docs`.
+///
+/// ## Maven
+///
+/// The `tddoc:site` goal binds to `verify`, so the suite has passed before
+/// the site is built:
+///
+/// ```
+/// <plugin>
+///   <groupId>dev.tddoc</groupId>
+///   <artifactId>tddoc-maven-plugin</artifactId>
+///   <version>${tddoc.version}</version>
+///   <executions>
+///     <execution><goals><goal>site</goal></goals></execution>
+///   </executions>
+///   <configuration>
+///     <docs>src/test/java/your/pkg/docs</docs>
+///     <name>yourproject</name>
+///     <repo>https://github.com/you/yourproject</repo>
+///   </configuration>
+/// </plugin>
+/// ```
+///
+/// Configuration mirrors the CLI flags 1:1; `mvn verify` (or
+/// `mvn tddoc:site` directly) writes `target/site`.
+///
+/// ## Copy the file
+///
+/// `SiteGen.java` is one file, zero dependencies — copy it into your repo,
+/// run it with the plain source launcher, own it forever.
 ///
 /// ## The flags
 ///
