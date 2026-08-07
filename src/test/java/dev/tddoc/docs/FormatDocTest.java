@@ -26,12 +26,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 ///
 /// ## Prose is a markdown subset
 ///
-/// `///` blocks render as markdown: `##` and `###` headings, `-` bullet
-/// lists, **bold**, *italic*, `inline code`,
-/// [links](https://github.com/tddoc/tddoc), and fenced code blocks for
-/// snippets that are prose, not proof (install commands, build config —
-/// anything that is not a runnable example). That is the whole subset — it
-/// covers articles without dragging a markdown library into the single file.
+/// `///` blocks render as markdown: `##` and `###` headings, bullet and
+/// ordered lists, **bold**, *italic*, `inline code`,
+/// [links](https://github.com/tddoc/tddoc), images, blockquotes, tables,
+/// horizontal rules, and fenced code blocks for snippets that are prose,
+/// not proof (install commands, build config — anything that is not a
+/// runnable example). Everything renders at build time to plain HTML: no
+/// markdown library on the JVM, no JavaScript required to read.
+///
+/// A few of them, in the wild. An ordered list:
+///
+/// 1. Write a failing doc-test.
+/// 2. Make it pass.
+/// 3. Publish — the article was reviewed by your CI.
+///
+/// A table:
+///
+/// | Construct | Rendered at |
+/// | --- | --- |
+/// | Prose blocks | build time |
+/// | Examples | test time, then build time |
+///
+/// And a blockquote:
+///
+/// > Docs that are proven, not promised.
 ///
 /// ## Members join the article with site:include
 ///

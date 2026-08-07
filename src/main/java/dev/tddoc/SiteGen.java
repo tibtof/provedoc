@@ -270,18 +270,28 @@ public class SiteGen {
     // Markdown subset -> HTML
     // ------------------------------------------------------------------
 
+    // Renderer state for md(): open block elements that must be closed before
+    // a different block kind starts.
+    static class MdState {
+        final StringBuilder html = new StringBuilder();
+        final List<String> para = new ArrayList<>();
+        final List<String> quote = new ArrayList<>();
+        final List<String> table = new ArrayList<>();
+        boolean inUl, inOl;
+    }
+
     static String md(String text) {
-        var html = new StringBuilder();
-        var para = new ArrayList<String>();
-        boolean inList = false;
+        var st = new MdState();
         boolean inFence = false;
+        String fenceLang = "";
         var fence = new ArrayList<String>();
         for (var line : (text + "\n").split("\n", -1)) {
             var s = line.strip();
             if (inFence) {
                 if (s.startsWith("```")) {
-                    html.append("<pre><code>").append(escape(String.join("\n", fence)))
-                            .append("</code></pre>\n");
+                    var lang = fenceLang.isEmpty() ? "" : " data-lang=\"" + escape(fenceLang) + "\"";
+                    st.html.append("<pre class=\"code\"").append(lang).append("><code>")
+                            .append(escape(String.join("\n", fence))).append("</code></pre>\n");
                     fence.clear();
                     inFence = false;
                 } else {
@@ -290,45 +300,112 @@ public class SiteGen {
                 continue;
             }
             if (s.startsWith("```")) {
-                inList = closeParaAndList(html, para, inList);
+                closeBlocks(st);
+                fenceLang = s.substring(3).strip();
                 inFence = true;
             } else if (s.startsWith("### ")) {
-                inList = closeParaAndList(html, para, inList);
-                html.append("<h3 id=\"").append(slugify(s.substring(4))).append("\">")
+                closeBlocks(st);
+                st.html.append("<h3 id=\"").append(slugify(s.substring(4))).append("\">")
                         .append(inline(s.substring(4))).append("</h3>\n");
             } else if (s.startsWith("## ")) {
-                inList = closeParaAndList(html, para, inList);
-                html.append("<h2 id=\"").append(slugify(s.substring(3))).append("\">")
+                closeBlocks(st);
+                st.html.append("<h2 id=\"").append(slugify(s.substring(3))).append("\">")
                         .append(inline(s.substring(3))).append("</h2>\n");
+            } else if (s.equals("---")) {
+                closeBlocks(st);
+                st.html.append("<hr>\n");
+            } else if (s.startsWith("|")) {
+                closePara(st);
+                st.table.add(s);
+            } else if (s.startsWith("> ") || s.equals(">")) {
+                closePara(st);
+                st.quote.add(s.equals(">") ? "" : s.substring(2));
             } else if (s.startsWith("- ")) {
-                if (!para.isEmpty()) {
-                    html.append("<p>").append(inline(String.join(" ", para))).append("</p>\n");
-                    para.clear();
+                closePara(st);
+                if (!st.inUl) {
+                    closeBlocks(st);
+                    st.html.append("<ul>\n");
+                    st.inUl = true;
                 }
-                if (!inList) {
-                    html.append("<ul>\n");
-                    inList = true;
+                st.html.append("<li>").append(inline(s.substring(2))).append("</li>\n");
+            } else if (s.matches("\\d+\\. .*")) {
+                closePara(st);
+                if (!st.inOl) {
+                    closeBlocks(st);
+                    st.html.append("<ol>\n");
+                    st.inOl = true;
                 }
-                html.append("<li>").append(inline(s.substring(2))).append("</li>\n");
+                st.html.append("<li>").append(inline(s.substring(s.indexOf(' ') + 1)))
+                        .append("</li>\n");
             } else if (s.isEmpty()) {
-                inList = closeParaAndList(html, para, inList);
+                closeBlocks(st);
             } else {
-                para.add(s);
+                st.para.add(s);
             }
         }
-        closeParaAndList(html, para, inList);
-        return html.toString();
+        closeBlocks(st);
+        return st.html.toString();
     }
 
-    static boolean closeParaAndList(StringBuilder html, List<String> para, boolean inList) {
-        if (!para.isEmpty()) {
-            html.append("<p>").append(inline(String.join(" ", para))).append("</p>\n");
-            para.clear();
+    static void closePara(MdState st) {
+        if (!st.para.isEmpty()) {
+            st.html.append("<p>").append(inline(String.join(" ", st.para))).append("</p>\n");
+            st.para.clear();
         }
-        if (inList) {
-            html.append("</ul>\n");
+    }
+
+    static void closeBlocks(MdState st) {
+        closePara(st);
+        if (st.inUl) {
+            st.html.append("</ul>\n");
+            st.inUl = false;
         }
-        return false;
+        if (st.inOl) {
+            st.html.append("</ol>\n");
+            st.inOl = false;
+        }
+        if (!st.quote.isEmpty()) {
+            st.html.append("<blockquote>\n");
+            var qp = new ArrayList<String>();
+            for (var q : st.quote) {
+                if (q.isEmpty()) {
+                    flushQuotePara(st, qp);
+                } else {
+                    qp.add(q);
+                }
+            }
+            flushQuotePara(st, qp);
+            st.html.append("</blockquote>\n");
+            st.quote.clear();
+        }
+        if (!st.table.isEmpty()) {
+            st.html.append("<div class=\"tablewrap\">\n<table>\n");
+            boolean headerDone = false;
+            for (var row : st.table) {
+                if (row.matches("\\|[\\s|:-]+")) { // separator row: |---|---|
+                    continue;
+                }
+                var cells = row.substring(1, row.endsWith("|") ? row.length() - 1 : row.length())
+                        .split("\\|", -1);
+                var tag = headerDone ? "td" : "th";
+                st.html.append("<tr>");
+                for (var cell : cells) {
+                    st.html.append("<").append(tag).append(">").append(inline(cell.strip()))
+                            .append("</").append(tag).append(">");
+                }
+                st.html.append("</tr>\n");
+                headerDone = true;
+            }
+            st.html.append("</table>\n</div>\n");
+            st.table.clear();
+        }
+    }
+
+    static void flushQuotePara(MdState st, List<String> qp) {
+        if (!qp.isEmpty()) {
+            st.html.append("<p>").append(inline(String.join(" ", qp))).append("</p>\n");
+            qp.clear();
+        }
     }
 
     static String inline(String s) {
@@ -343,6 +420,7 @@ public class SiteGen {
         }
         m.appendTail(sb);
         s = sb.toString();
+        s = s.replaceAll("!\\[([^]]*)]\\(([^)]+)\\)", "<img alt=\"$1\" src=\"$2\">");
         s = s.replaceAll("\\[([^]]+)]\\(([^)]+)\\)", "<a href=\"$2\">$1</a>");
         s = s.replaceAll("\\*\\*([^*]+)\\*\\*", "<strong>$1</strong>");
         s = s.replaceAll("\\*([^*]+)\\*", "<em>$1</em>");
@@ -499,6 +577,26 @@ public class SiteGen {
                           .catch(function () { location.href = root + sel.value; });
                       };
                     }).catch(function () {});
+                })();
+                (function () {
+                  document.querySelectorAll("pre.code").forEach(function (pre) {
+                    var wrap = document.createElement("div");
+                    wrap.className = "codewrap";
+                    pre.parentNode.insertBefore(wrap, pre);
+                    wrap.appendChild(pre);
+                    var btn = document.createElement("button");
+                    btn.className = "copybtn";
+                    btn.type = "button";
+                    btn.textContent = "copy";
+                    btn.onclick = function () {
+                      var code = pre.querySelector("code") || pre;
+                      navigator.clipboard.writeText(code.innerText).then(function () {
+                        btn.textContent = "copied";
+                        setTimeout(function () { btn.textContent = "copy"; }, 1500);
+                      });
+                    };
+                    wrap.appendChild(btn);
+                  });
                 })();
                 </script>
                 </body>
@@ -683,6 +781,40 @@ public class SiteGen {
               padding: 1.1rem 1.3rem; overflow-x: auto;
               font-size: 0.86rem; line-height: 1.6; margin: 1.3rem 0;
             }
+            .codewrap { position: relative; }
+            .codewrap .code { margin: 1.3rem 0; }
+            .code[data-lang]::before {
+              content: attr(data-lang);
+              float: right; margin-left: 1rem;
+              font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+              letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+              transition: opacity 0.15s;
+            }
+            .codewrap:hover .code[data-lang]::before { opacity: 0; }
+            .copybtn {
+              position: absolute; top: 0.55rem; right: 0.6rem;
+              font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+              letter-spacing: 0.08em; color: var(--muted);
+              background: var(--paper); border: 1px solid var(--rule);
+              border-radius: 6px; padding: 0.2rem 0.5rem; cursor: pointer;
+              opacity: 0; transition: opacity 0.15s;
+            }
+            .codewrap:hover .copybtn, .copybtn:focus-visible { opacity: 1; }
+            .copybtn:hover { border-color: var(--rubric); color: var(--ink); }
+            blockquote {
+              margin: 1.3rem 0; padding: 0.2rem 0 0.2rem 1.2rem;
+              border-left: 3px solid var(--rubric); color: var(--muted);
+            }
+            blockquote p { margin: 0.4rem 0; }
+            hr { border: 0; border-top: 1px solid var(--rule); margin: 2.2rem 0; }
+            .tablewrap { overflow-x: auto; margin: 1.3rem 0; }
+            table { border-collapse: collapse; width: 100%; font-size: 0.95em; }
+            th, td { text-align: left; padding: 0.5rem 0.9rem 0.5rem 0; border-bottom: 1px solid var(--rule); }
+            th {
+              font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+              letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+            }
+            article img { max-width: 100%; }
             .c-kw { font-weight: 700; }
             .c-str { color: var(--rubric); }
             .c-com { color: var(--muted); font-style: italic; }
