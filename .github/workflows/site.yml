@@ -35,15 +35,13 @@ jobs:
       - name: Test and javadoc
         run: ./gradlew build javadoc
       - name: Generate site
+        # Branding and paths come from tddoc.yml (dogfooding the config file);
+        # only per-build values are flags.
         run: |
           VERSION=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
           java src/main/java/dev/tddoc/SiteGen.java \
-            --docs src/test/java/dev/tddoc/docs \
-            --glyph '✓' \
             --out build/site \
-            --javadoc build/docs/javadoc \
-            --version "${VERSION:-0.1.0}" \
-            --install 'jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central'
+            --version "${VERSION:-0.1.0}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/site

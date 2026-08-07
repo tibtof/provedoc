@@ -1,0 +1,10 @@
+# tddoc configures its own site with the file it gives everyone else.
+# Flat subset of YAML: key: value, comments, | blocks. See the running guide.
+name: tddoc
+tagline: test-driven documentation: proven, not promised
+repo: https://github.com/tddoc/tddoc
+glyph: "✓"
+docs: src/test/java/dev/tddoc/docs
+javadoc: build/docs/javadoc
+install: |
+  jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central

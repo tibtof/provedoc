@@ -85,8 +85,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// `SiteGen.java` is one file, zero dependencies — copy it into your repo,
 /// run it with the plain source launcher, own it forever.
 ///
+/// ## Config file: tddoc.yml
+///
+/// The idiomatic setup is a `tddoc.yml` in the project root — then every
+/// tier above works with **zero inline configuration**: `jbang tddoc@tddoc`
+/// alone, `plugins { id("dev.tddoc") }` with no `tddoc {}` block, the Maven
+/// plugin with no `<configuration>`.
+///
+/// ```yaml
+/// name: yourproject
+/// tagline: your docs, proven
+/// repo: https://github.com/you/yourproject
+/// docs: src/test/java/your/pkg/docs
+/// javadoc: build/docs/javadoc
+/// install: |
+///   implementation("com.example:yourproject:{version}")
+/// ```
+///
+/// Keys are the flag names; relative paths resolve against the yml's own
+/// directory. Precedence is CLI flag (or explicit plugin configuration) >
+/// tddoc.yml > built-in default, so CI can still override per-build values
+/// like `--version`. The file is a deliberately *flat* subset of YAML —
+/// `key: value`, `#` comments, quotes, and `|` blocks for multiline values;
+/// no nesting, no lists, no YAML library on the JVM.
+///
 /// ## The flags
 ///
+/// - `--config` — path to the config file (default: `./tddoc.yml` when it
+///   exists).
 /// - `--docs` — directory of `*DocTest.java` files (the only required input
 ///   in practice).
 /// - `--out` — output directory, default `build/site`.
@@ -99,6 +125,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// - `--editBase` — where "edit this page" links point.
 /// - `--version`, `--prefix`, `--channel` — versioned deploys: root for the
 ///   latest release, `v/x.y.z/` for frozen snapshots, `next/` for main.
+/// - `--watch` — regenerate on every change to the docs tree and auto-reload
+///   the browser. tddoc ships no server; pair it with the JDK's own:
+///
+/// ```bash
+/// java SiteGen.java --watch & jwebserver -d build/site
+/// ```
 ///
 /// ## Proof, not promise
 ///
@@ -111,7 +143,8 @@ class RunningDocTest {
     @Test
     void generates_a_site_and_substitutes_the_install_version(@TempDir Path tmp) throws Exception {
         Path docs = Files.createDirectories(tmp.resolve("docs"));
-        Files.writeString(docs.resolve("SampleDocTest.java"), sampleDocTest());
+        Path nested = Files.createDirectories(docs.resolve("nested"));
+        Files.writeString(nested.resolve("SampleDocTest.java"), sampleDocTest());
         Path out = tmp.resolve("site");
 
         SiteGen.main(new String[]{
