@@ -103,15 +103,21 @@ selector.
 
 ## Using it
 
-Four tiers, in increasing order of commitment:
+Four tiers, in increasing order of commitment — pick yours:
 
-**Try it** — nothing to install beyond [jbang](https://jbang.dev):
+<details open>
+<summary><strong>jbang</strong> — try it, nothing to install</summary>
 
 ```bash
 jbang tddoc@tddoc --docs src/test/java/your/pkg/docs --out build/site
 ```
 
-**Gradle** — plugin id `dev.tddoc` (resolve from Maven Central):
+Needs only [jbang](https://jbang.dev); resolves the latest release from Maven
+Central.
+</details>
+
+<details>
+<summary><strong>Gradle</strong> — plugin id <code>dev.tddoc</code></summary>
 
 ```kotlin
 // settings.gradle.kts
@@ -126,8 +132,10 @@ tddoc {
 ```
 
 `./gradlew tddocSite` runs your tests first, then generates `build/site`.
+</details>
 
-**Maven** — goal `tddoc:site`, bound to `verify`:
+<details>
+<summary><strong>Maven</strong> — goal <code>tddoc:site</code></summary>
 
 ```xml
 <plugin>
@@ -138,7 +146,15 @@ tddoc {
 </plugin>
 ```
 
-**Own it** — copy `SiteGen.java` into your repo; see the contract below.
+Bound to `verify`, so the suite has passed before the site is built.
+</details>
+
+<details>
+<summary><strong>Copy the file</strong> — own it forever</summary>
+
+Copy `SiteGen.java` into your repo and run it with the plain source launcher;
+see the contract below. Zero dependencies, no lock-in.
+</details>
 
 ## The contract
 
