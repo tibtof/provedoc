@@ -27,3 +27,7 @@ target/
 
 # IDE build output
 bin/
+
+# Claude Code local settings
+.claude/settings.local.json
+.claude/worktrees/
