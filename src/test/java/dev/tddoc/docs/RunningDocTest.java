@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 ///
 /// [jbang](https://jbang.dev) resolves the latest release from Maven Central:
 ///
-/// ```
+/// ```bash
 /// jbang tddoc@tddoc --docs src/test/java/your/pkg/docs --out build/site
 /// ```
 ///
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 ///
 /// Plugin id `dev.tddoc`, resolved from Maven Central:
 ///
-/// ```
+/// ```kotlin
 /// // settings.gradle.kts
 /// pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
 ///
@@ -61,7 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// The `tddoc:site` goal binds to `verify`, so the suite has passed before
 /// the site is built:
 ///
-/// ```
+/// ```xml
 /// <plugin>
 ///   <groupId>dev.tddoc</groupId>
 ///   <artifactId>tddoc-maven-plugin</artifactId>
@@ -129,6 +129,10 @@ class RunningDocTest {
         assertTrue(index.contains("# 9.9.9"), "{version} is substituted");
         assertTrue(guide.contains("A sample guide"), "front matter title renders");
         assertTrue(guide.contains("1 + 1"), "the test body renders as the example");
+        assertTrue(guide.contains("class=\"code\" data-lang=\"bash\""), "fences get the code card and language");
+        assertTrue(guide.contains("<ol>"), "ordered lists render");
+        assertTrue(guide.contains("<blockquote>"), "blockquotes render");
+        assertTrue(guide.contains("<table>"), "tables render");
     }
 
     // The sample doc-test is assembled line by line so this file's own prose
@@ -143,6 +147,19 @@ class RunningDocTest {
                 "---",
                 "",
                 "A one-example guide.",
+                "",
+                "```bash",
+                "echo proven",
+                "```",
+                "",
+                "1. first",
+                "2. second",
+                "",
+                "> quoted",
+                "",
+                "| a | b |",
+                "| --- | --- |",
+                "| 1 | 2 |",
                 "",
                 "[landing]");
         String header = prose.stream().map(l -> ("/// " + l).strip())
