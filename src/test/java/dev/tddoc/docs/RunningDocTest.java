@@ -19,14 +19,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// summary: Every flag, demonstrated by a test that runs SiteGen for real.
 /// ---
 ///
-/// Three ways to run tddoc, in increasing order of commitment:
+/// Four ways to run tddoc, in increasing order of commitment:
 ///
 /// - `jbang tddoc@tddoc --docs src/test/java/... --out build/site` — nothing
 ///   to install beyond [jbang](https://jbang.dev).
-/// - Depend on `dev.tddoc:tddoc` from Maven Central and run the jar
-///   (`java -jar tddoc-x.y.z.jar`) from your build.
+/// - **Gradle**: apply plugin id `dev.tddoc` (from Maven Central), configure
+///   the `tddoc { }` extension, run `./gradlew tddocSite`. The task depends
+///   on `test`, so examples pass before the site builds, and it is
+///   up-to-date-checked like any Gradle task.
+/// - **Maven**: add `dev.tddoc:tddoc-maven-plugin`; the `tddoc:site` goal is
+///   bound to `verify`, configuration mirrors the flags 1:1.
 /// - Copy `SiteGen.java` into your repo and run `java SiteGen.java` — one
 ///   file, zero dependencies, yours forever.
+///
+/// The plugins are thin wrappers: both call the same `SiteGen.main` the CLI
+/// and the copied file use, so there is no second code path to drift.
 ///
 /// ## The flags
 ///
