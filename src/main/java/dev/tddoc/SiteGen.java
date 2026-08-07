@@ -53,11 +53,33 @@ public class SiteGen {
     static String glyph = "p";
     static String editBase = "";
     static String install = "";
+    static boolean watchMode;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
+        var argList = new ArrayList<>(List.of(args));
+        watchMode = argList.remove("--watch"); // bare flag; the loop below reads pairs
         var opts = new LinkedHashMap<String, String>();
-        for (int i = 0; i + 1 < args.length; i += 2) {
-            opts.put(args[i].replaceFirst("^--", ""), args[i + 1]);
+        for (int i = 0; i + 1 < argList.size(); i += 2) {
+            opts.put(argList.get(i).replaceFirst("^--", ""), argList.get(i + 1));
+        }
+        // Config file: tddoc.yml next to the code is the primary configuration;
+        // flags exist for overrides (CI-set version/prefix) and one-offs.
+        // Precedence: CLI flag > config file > built-in default.
+        var configPath = opts.containsKey("config") ? Path.of(opts.get("config"))
+                : Files.exists(Path.of("tddoc.yml")) ? Path.of("tddoc.yml") : null;
+        if (configPath != null) {
+            if (!Files.isRegularFile(configPath)) {
+                throw new IllegalArgumentException("config file not found: " + configPath);
+            }
+            var base = configPath.toAbsolutePath().getParent();
+            readConfig(configPath).forEach((key, value) -> {
+                if (!opts.containsKey(key)) {
+                    // Paths in the config resolve against the config file's own
+                    // directory, so builds work from any working directory.
+                    opts.put(key, Set.of("docs", "out", "javadoc").contains(key)
+                            ? base.resolve(value).toString() : value);
+                }
+            });
         }
         var version = opts.getOrDefault("version", "0.1.0");
         var docsDir = Path.of(opts.getOrDefault("docs", "src/test/java/dev/fforj/docs"));
@@ -78,8 +100,16 @@ public class SiteGen {
         editBase = opts.getOrDefault("editBase", repo + "/blob/main/" + docsDir + "/");
         install = opts.getOrDefault("install", "");
 
+        generate(docsDir, out, javadoc, version);
+        if (watchMode) {
+            watch(docsDir, out, javadoc, version);
+        }
+    }
+
+    static void generate(Path docsDir, Path out, Path javadoc, String version) throws IOException {
+        landing = null;
         List<Article> articles;
-        try (Stream<Path> files = Files.list(docsDir)) {
+        try (Stream<Path> files = Files.walk(docsDir)) {
             articles = new ArrayList<>(files
                     .filter(p -> p.getFileName().toString().endsWith("DocTest.java"))
                     .map(SiteGen::parseArticle)
@@ -91,7 +121,6 @@ public class SiteGen {
         }
 
         Files.createDirectories(out);
-        Files.writeString(out.resolve("style.css"), CSS);
         Files.writeString(out.resolve(".nojekyll"), "");
         Files.writeString(out.resolve("index.html"), landingPage(articles, version));
         for (var article : articles) {
@@ -104,8 +133,105 @@ public class SiteGen {
         } else {
             System.err.println("warning: no javadoc at " + javadoc + "; /api/ not generated");
         }
+        // style.css goes last: the watch-mode reload script polls its
+        // Last-Modified, so it must move only after all pages are complete.
+        Files.writeString(out.resolve("style.css"), CSS);
         System.out.println("site: " + out.toAbsolutePath()
                 + " (" + articles.size() + " guides, version " + version + ")");
+    }
+
+    /**
+     * Watches the doc-test tree and regenerates on every change, forever.
+     * Pairs with the JDK's own server for a live preview:
+     * {@code jwebserver -d build/site}. A parse error mid-edit prints and
+     * keeps watching — a half-typed brace must not kill the session.
+     */
+    static void watch(Path docsDir, Path out, Path javadoc, String version)
+            throws IOException, InterruptedException {
+        try (var watcher = docsDir.getFileSystem().newWatchService()) {
+            try (Stream<Path> dirs = Files.walk(docsDir)) {
+                for (var dir : dirs.filter(Files::isDirectory).toList()) {
+                    dir.register(watcher,
+                            java.nio.file.StandardWatchEventKinds.ENTRY_CREATE,
+                            java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY,
+                            java.nio.file.StandardWatchEventKinds.ENTRY_DELETE);
+                }
+            }
+            System.out.println("watching " + docsDir + " — serve the site with: jwebserver -d " + out);
+            while (true) {
+                var key = watcher.take();
+                Thread.sleep(150); // debounce editor save bursts
+                key.pollEvents();
+                var pending = watcher.poll();
+                while (pending != null) {
+                    pending.pollEvents();
+                    pending.reset();
+                    pending = watcher.poll();
+                }
+                try {
+                    generate(docsDir, out, javadoc, version);
+                } catch (Exception e) {
+                    System.err.println("regen failed (still watching): " + e.getMessage());
+                }
+                if (!key.reset()) {
+                    return;
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Config file (tddoc.yml)
+    // ------------------------------------------------------------------
+
+    /**
+     * Parses a tddoc.yml: a deliberately flat subset of YAML, hand-rolled to
+     * keep the zero-dependency contract. Supported: {@code key: value} pairs,
+     * {@code #} comments, blank lines, optional single/double quotes around
+     * values, and {@code |} literal blocks for multiline values (the install
+     * snippet). Not supported, by design: nesting, lists, anchors — anything
+     * else that would need a real YAML library.
+     */
+    public static Map<String, String> readConfig(Path file) throws IOException {
+        var config = new LinkedHashMap<String, String>();
+        var lines = Files.readAllLines(file);
+        for (int i = 0; i < lines.size(); i++) {
+            var s = lines.get(i).strip();
+            if (s.isEmpty() || s.startsWith("#")) {
+                continue;
+            }
+            int colon = s.indexOf(':');
+            if (colon < 0) {
+                throw new IllegalArgumentException(file + ":" + (i + 1) + ": expected 'key: value'");
+            }
+            var key = s.substring(0, colon).strip();
+            var value = s.substring(colon + 1).strip();
+            if (value.equals("|")) {
+                var block = new ArrayList<String>();
+                int blockIndent = -1;
+                while (i + 1 < lines.size()) {
+                    var next = lines.get(i + 1);
+                    if (!next.isBlank() && next.strip().length() == next.length()) {
+                        break; // back at column zero: block over
+                    }
+                    if (blockIndent < 0 && !next.isBlank()) {
+                        blockIndent = next.length() - next.stripLeading().length();
+                    }
+                    block.add(next.isBlank() ? "" : next.substring(Math.min(blockIndent, next.length())));
+                    i++;
+                }
+                while (!block.isEmpty() && block.getLast().isEmpty()) {
+                    block.removeLast();
+                }
+                value = String.join("\n", block);
+            } else if (value.length() >= 2
+                    && (value.startsWith("\"") && value.endsWith("\"")
+                        || value.startsWith("'") && value.endsWith("'"))) {
+                value = value.substring(1, value.length() - 1);
+            }
+            config.put(key, value);
+        }
+        return config;
     }
 
     // ------------------------------------------------------------------
@@ -602,7 +728,26 @@ public class SiteGen {
                 </body>
                 </html>
                 """.formatted(escape(title), escape(description), glyph, root, root,
-                escape(siteName), prefix, page, escape(channel), root, root, repo, body, repo);
+                escape(siteName), prefix, page, escape(channel), root, root, repo, body, repo)
+                .replace("</body>", watchMode ? watchJs(root) + "</body>" : "</body>");
+    }
+
+    /** Watch-mode only: reload the page when style.css (written last) moves. */
+    static String watchJs(String root) {
+        return """
+                <script>
+                (function () {
+                  var last = null;
+                  setInterval(function () {
+                    fetch("%sstyle.css", { method: "HEAD", cache: "no-store" }).then(function (r) {
+                      var m = r.headers.get("last-modified");
+                      if (last && m && m !== last) location.reload();
+                      last = m;
+                    }).catch(function () {});
+                  }, 1000);
+                })();
+                </script>
+                """.formatted(root);
     }
 
     static String landingPage(List<Article> articles, String version) {
