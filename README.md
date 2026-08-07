@@ -1,15 +1,20 @@
 # tddoc
 
-**Docs that are proven, not promised.**
+**Test-driven documentation: docs that are proven, not promised.**
 
 tddoc turns executable tests into published articles. Prose and code live in
 the same test file; every example on the resulting site is the body of a real
 test that ran in CI. Examples cannot rot: if one breaks, the build breaks, and
 the broken version never reaches your readers.
 
-This is more than API documentation. The format is built for *articles* —
-guides, tutorials, release walkthroughs — where the narrative interleaves with
-code that provably works, version by version.
+The name works like *doctest*: tddoc is the tool, and the articles you write
+with it are tddocs.
+
+This is more than API documentation. If you know the test-driven approach of
+Spring REST Docs, this is that idea generalized beyond API reference: the
+format is built for *articles* — guides, tutorials, release walkthroughs —
+where the narrative interleaves with code that provably works, version by
+version.
 
 ## Status
 

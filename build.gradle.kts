@@ -49,8 +49,9 @@ mavenPublishing {
     pom {
         name.set("tddoc")
         description.set(
-            "tddoc — docs that are proven, not promised. Doctest-first article " +
-                    "tooling for the JVM: every example is a passing test. Zero dependencies."
+            "tddoc — test-driven documentation: docs that are proven, not promised. " +
+                    "Doctest-first article tooling for the JVM: every example is a " +
+                    "passing test. Zero dependencies."
         )
         inceptionYear.set("2026")
         url.set("https://github.com/tddoc/tddoc")
