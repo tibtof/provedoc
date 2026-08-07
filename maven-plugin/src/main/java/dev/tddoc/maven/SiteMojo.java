@@ -8,8 +8,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Generates the tddoc article site from doc-tests by invoking
@@ -20,12 +22,23 @@ import java.util.List;
 @Mojo(name = "site", defaultPhase = LifecyclePhase.VERIFY)
 public class SiteMojo extends AbstractMojo {
 
-    /** Directory containing the {@code *DocTest.java} sources. */
-    @Parameter(property = "tddoc.docs", defaultValue = "${project.basedir}/src/test/java")
+    /** Project base directory; where {@code tddoc.yml} is looked up. */
+    @Parameter(defaultValue = "${project.basedir}", readonly = true)
+    private File basedir;
+
+    /**
+     * Directory containing the {@code *DocTest.java} sources. Falls back to
+     * the {@code docs} key of {@code tddoc.yml}, then to
+     * {@code src/test/java}.
+     */
+    @Parameter(property = "tddoc.docs")
     private File docs;
 
-    /** Output directory for the generated site. */
-    @Parameter(property = "tddoc.out", defaultValue = "${project.build.directory}/site")
+    /**
+     * Output directory for the generated site. Falls back to the {@code out}
+     * key of {@code tddoc.yml}, then to {@code target/site}.
+     */
+    @Parameter(property = "tddoc.out")
     private File out;
 
     /** Site name shown in the header. */
@@ -70,6 +83,37 @@ public class SiteMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        // Zero-config path: tddoc.yml in the project root supplies anything not
+        // set in <configuration>; explicit configuration always wins.
+        Map<String, String> config = Map.of();
+        File yml = new File(basedir, "tddoc.yml");
+        if (yml.isFile()) {
+            try {
+                config = SiteGen.readConfig(yml.toPath());
+            } catch (IOException e) {
+                throw new MojoExecutionException("cannot read " + yml, e);
+            }
+        }
+        if (docs == null) {
+            docs = new File(basedir, config.getOrDefault("docs", "src/test/java"));
+        }
+        if (out == null) {
+            out = config.containsKey("out")
+                    ? new File(basedir, config.get("out"))
+                    : new File(basedir, "target/site");
+        }
+        name = orConfig(name, config, "name");
+        tagline = orConfig(tagline, config, "tagline");
+        repo = orConfig(repo, config, "repo");
+        glyph = orConfig(glyph, config, "glyph");
+        install = orConfig(install, config, "install");
+        editBase = orConfig(editBase, config, "editBase");
+        prefix = orConfig(prefix, config, "prefix");
+        channel = orConfig(channel, config, "channel");
+        if (javadoc == null && config.containsKey("javadoc")) {
+            javadoc = new File(basedir, config.get("javadoc"));
+        }
+
         List<String> args = new ArrayList<>();
         args.add("--docs");
         args.add(docs.getPath());
@@ -101,5 +145,9 @@ public class SiteMojo extends AbstractMojo {
             args.add(flag);
             args.add(value);
         }
+    }
+
+    private static String orConfig(String explicit, Map<String, String> config, String key) {
+        return explicit != null ? explicit : config.get(key);
     }
 }
