@@ -1,0 +1,50 @@
+name: site
+
+# Docs site: every push to main rebuilds and deploys GitHub Pages. The suite
+# runs first, so a broken example can never reach a reader.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # for the latest release tag
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test and javadoc
+        run: ./gradlew build javadoc
+      - name: Generate site
+        run: |
+          VERSION=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
+          java src/main/java/dev/tddoc/SiteGen.java \
+            --docs src/test/java/dev/tddoc/docs \
+            --out build/site \
+            --javadoc build/docs/javadoc \
+            --version "${VERSION:-0.1.0}" \
+            --install 'jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central'
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+      - uses: actions/deploy-pages@v4
+        id: deploy
