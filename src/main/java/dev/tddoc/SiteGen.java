@@ -274,9 +274,25 @@ public class SiteGen {
         var html = new StringBuilder();
         var para = new ArrayList<String>();
         boolean inList = false;
+        boolean inFence = false;
+        var fence = new ArrayList<String>();
         for (var line : (text + "\n").split("\n", -1)) {
             var s = line.strip();
-            if (s.startsWith("### ")) {
+            if (inFence) {
+                if (s.startsWith("```")) {
+                    html.append("<pre><code>").append(escape(String.join("\n", fence)))
+                            .append("</code></pre>\n");
+                    fence.clear();
+                    inFence = false;
+                } else {
+                    fence.add(line);
+                }
+                continue;
+            }
+            if (s.startsWith("```")) {
+                inList = closeParaAndList(html, para, inList);
+                inFence = true;
+            } else if (s.startsWith("### ")) {
                 inList = closeParaAndList(html, para, inList);
                 html.append("<h3 id=\"").append(slugify(s.substring(4))).append("\">")
                         .append(inline(s.substring(4))).append("</h3>\n");
