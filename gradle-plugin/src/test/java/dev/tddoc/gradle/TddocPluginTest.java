@@ -34,6 +34,25 @@ class TddocPluginTest {
     }
 
     @Test
+    void tddoc_yml_supplies_conventions_but_explicit_settings_win() throws Exception {
+        Project project = ProjectBuilder.builder().build();
+        java.nio.file.Files.writeString(project.file("tddoc.yml").toPath(), """
+                name: fromconfig
+                tagline: from the yml
+                docs: doc-tests
+                """);
+        project.getPlugins().apply("dev.tddoc");
+
+        var ext = project.getExtensions().getByType(TddocExtension.class);
+        ext.getName().set("explicit");
+
+        var task = (TddocSiteTask) project.getTasks().getByName("tddocSite");
+        assertEquals("explicit", task.getSiteName().get());
+        assertEquals("from the yml", task.getTagline().get());
+        assertEquals(project.file("doc-tests"), task.getDocs().get().getAsFile());
+    }
+
+    @Test
     void site_task_runs_after_tests_when_java_is_applied() {
         Project project = ProjectBuilder.builder().build();
         project.getPlugins().apply("java");
