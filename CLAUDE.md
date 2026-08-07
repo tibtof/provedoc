@@ -37,10 +37,12 @@ original design rationale).
 
 ## Gotchas (learned the hard way)
 
-- **SiteGen.java contains four raw NUL bytes** (highlighter placeholder
-  sentinels in string literals). BSD grep therefore treats it as binary and
-  silently matches nothing: always `grep -a` on this file. `file` calls it
-  "data"; that's expected, not corruption.
+- SiteGen.java used to contain four raw NUL bytes (code-span sentinels);
+  they are `"\0"` escapes since the nested-class refactor, so plain grep
+  works now. Don't reintroduce raw control bytes — use escapes.
+- SiteGen.java is one FILE but not one flat class: nested statics `Config`,
+  `Parser`, `Markdown`, `Highlighter`, `Html`, `Watcher`. The single-file
+  contract is unaffected; keep new code inside the matching nested class.
 - Regenerating the README screenshot: build, run SiteGen with
   `--docs src/test/java/dev/tddoc/docs --install '...'`, serve `build/example-site`,
   capture at 1200px CSS width. On a display with fractional scaling (dpr 1.25),
