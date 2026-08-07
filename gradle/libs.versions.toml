@@ -1,11 +1,17 @@
 [versions]
 junit = "5.12.2"
 mavenPublish = "0.37.0"
+mavenPluginDev = "1.0.3"
+mavenPluginApi = "3.9.9"
+mavenPluginAnnotations = "3.15.1"
 
 [plugins]
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
+mavenPluginDev = { id = "org.gradlex.maven-plugin-development", version.ref = "mavenPluginDev" }
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "mavenPluginApi" }
+maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "mavenPluginAnnotations" }

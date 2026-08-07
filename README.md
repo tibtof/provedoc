@@ -101,6 +101,45 @@ and renders a static site — markdown subset, small Java highlighter, javadoc
 folded in under `/api/`, and per-release version snapshots with a live version
 selector.
 
+## Using it
+
+Four tiers, in increasing order of commitment:
+
+**Try it** — nothing to install beyond [jbang](https://jbang.dev):
+
+```bash
+jbang tddoc@tddoc --docs src/test/java/your/pkg/docs --out build/site
+```
+
+**Gradle** — plugin id `dev.tddoc` (resolve from Maven Central):
+
+```kotlin
+// settings.gradle.kts
+pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
+
+// build.gradle.kts
+plugins { id("dev.tddoc") version "<version>" }
+tddoc {
+    docs = file("src/test/java/your/pkg/docs")
+    name = "yourproject"
+}
+```
+
+`./gradlew tddocSite` runs your tests first, then generates `build/site`.
+
+**Maven** — goal `tddoc:site`, bound to `verify`:
+
+```xml
+<plugin>
+  <groupId>dev.tddoc</groupId>
+  <artifactId>tddoc-maven-plugin</artifactId>
+  <version>${tddoc.version}</version>
+  <configuration><docs>src/test/java/your/pkg/docs</docs></configuration>
+</plugin>
+```
+
+**Own it** — copy `SiteGen.java` into your repo; see the contract below.
+
 ## The contract
 
 One file, zero dependencies. `SiteGen.java` runs via the plain source launcher:
