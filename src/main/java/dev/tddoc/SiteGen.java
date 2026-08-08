@@ -186,10 +186,13 @@ public class SiteGen {
                     }
                 });
             }
-            var version = opts.getOrDefault("version", "0.1.0");
-            var docs = Path.of(opts.getOrDefault("docs", "src/test/java/dev/fforj/docs"));
-            var name = opts.getOrDefault("name", "tddoc");
-            var repo = opts.getOrDefault("repo", "https://github.com/tddoc/tddoc");
+            // Neutral defaults: nothing project-specific leaks into a site that
+            // didn't configure it. Absent repo/tagline hide their UI.
+            var version = opts.getOrDefault("version", "dev");
+            var docs = Path.of(opts.getOrDefault("docs", "src/test/java"));
+            var name = opts.getOrDefault("name",
+                    String.valueOf(Path.of("").toAbsolutePath().getFileName()));
+            var repo = opts.getOrDefault("repo", "");
             return new Config(
                     docs,
                     Path.of(opts.getOrDefault("out", "build/site")),
@@ -204,11 +207,12 @@ public class SiteGen {
                     opts.getOrDefault("prefix", ""),
                     opts.getOrDefault("channel", version),
                     name,
-                    opts.getOrDefault("tagline", "test-driven documentation: proven, not promised"),
+                    opts.getOrDefault("tagline", ""),
                     repo,
                     opts.getOrDefault("glyph", name.substring(0, 1)),
                     // Where "edit this page" links point: the doc-test sources.
-                    opts.getOrDefault("editBase", repo + "/blob/main/" + docs + "/"),
+                    opts.getOrDefault("editBase",
+                            repo.isEmpty() ? "" : repo + "/blob/main/" + docs + "/"),
                     opts.getOrDefault("install", ""),
                     opts.getOrDefault("theme", "rubric"),
                     opts.containsKey("css") ? Path.of(opts.get("css")) : null,
@@ -859,6 +863,79 @@ public class SiteGen {
         static final Map<String, Theme> THEMES = Map.of(
                 // The default early-print look (accent, serifs, webfonts).
                 "rubric", new Theme("", true),
+                // rubric with its original rubrication red (the fforj look).
+                "manuscript", new Theme("""
+
+                        /* theme: manuscript */
+                        :root { --rubric: #C0341D; }
+                        @media (prefers-color-scheme: dark) {
+                          :root:not([data-theme="light"]) { --rubric: #E25B3C; }
+                        }
+                        :root[data-theme="dark"] { --rubric: #E25B3C; }
+                        """, true),
+                // Phosphor on glass: mono everywhere, square corners.
+                "terminal", new Theme("""
+
+                        /* theme: terminal */
+                        :root {
+                          --font-prose: var(--font-mono);
+                          --radius: 0; --radius-card: 0; --radius-chip: 0; --radius-inline: 0;
+                          --paper: #F2F5F2; --ink: #14201A; --rubric: #0E7A3C; --muted: #5C6B60;
+                          --rule: #D5DED7; --code-bg: #E7EDE8; --card: #FBFDFB;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                          :root:not([data-theme="light"]) {
+                            --paper: #0B0F0C; --ink: #C8E6CF; --rubric: #3DDC84; --muted: #6E8A76;
+                            --rule: #1D2B21; --code-bg: #101711; --card: #0E140F;
+                          }
+                        }
+                        :root[data-theme="dark"] {
+                          --paper: #0B0F0C; --ink: #C8E6CF; --rubric: #3DDC84; --muted: #6E8A76;
+                          --rule: #1D2B21; --code-bg: #101711; --card: #0E140F;
+                        }
+                        body { font-size: 1rem; }
+                        """, true),
+                // The look of a paper: black on white, one dark-red accent.
+                "academic", new Theme("""
+
+                        /* theme: academic */
+                        :root {
+                          --font-prose: Georgia, "Times New Roman", serif;
+                          --radius: 2px; --radius-card: 2px; --radius-chip: 2px; --radius-inline: 2px;
+                          --paper: #FFFFFF; --ink: #111111; --rubric: #8B1A1A; --muted: #555555;
+                          --rule: #DDDDDD; --code-bg: #F7F7F7; --card: #FFFFFF;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                          :root:not([data-theme="light"]) {
+                            --paper: #121212; --ink: #E8E8E8; --rubric: #D96C5F; --muted: #9A9A9A;
+                            --rule: #2C2C2C; --code-bg: #1C1C1C; --card: #181818;
+                          }
+                        }
+                        :root[data-theme="dark"] {
+                          --paper: #121212; --ink: #E8E8E8; --rubric: #D96C5F; --muted: #9A9A9A;
+                          --rule: #2C2C2C; --code-bg: #1C1C1C; --card: #181818;
+                        }
+                        """, false),
+                // Cool neutral grays with a restrained blue: the corporate default.
+                "slate", new Theme("""
+
+                        /* theme: slate */
+                        :root {
+                          --font-prose: system-ui, -apple-system, "Segoe UI", sans-serif;
+                          --paper: #F8FAFC; --ink: #0F172A; --rubric: #2563EB; --muted: #64748B;
+                          --rule: #E2E8F0; --code-bg: #F1F5F9; --card: #FFFFFF;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                          :root:not([data-theme="light"]) {
+                            --paper: #0B1220; --ink: #E2E8F0; --rubric: #60A5FA; --muted: #94A3B8;
+                            --rule: #1E293B; --code-bg: #131C2E; --card: #101827;
+                          }
+                        }
+                        :root[data-theme="dark"] {
+                          --paper: #0B1220; --ink: #E2E8F0; --rubric: #60A5FA; --muted: #94A3B8;
+                          --rule: #1E293B; --code-bg: #131C2E; --card: #101827;
+                        }
+                        """, false),
                 // Unopinionated: system fonts, neutral accent, no webfont links.
                 "plain", new Theme("""
 
@@ -923,14 +1000,16 @@ public class SiteGen {
                       </div>
                       <div class="thesis">
                         <h1>%s</h1>
-                        <p class="sub">%s</p>
+                        %s
                       </div>
                     </section>
 
                     <section class="proof">
                       <div class="eyebrow">PROVEN, NOT PROMISED</div>
                       <p>This example is a test. It ran, and passed, before this page was built:</p>
-                    """.formatted(cfg.glyph(), Markdown.escape(cfg.name()), Markdown.escape(cfg.tagline())));
+                    """.formatted(cfg.glyph(), Markdown.escape(cfg.name()),
+                    cfg.tagline().isEmpty() ? ""
+                            : "<p class=\"sub\">" + Markdown.escape(cfg.tagline()) + "</p>"));
             body.append(codeBlock(landing.code()));
             body.append("<p class=\"more\"><a href=\"guides/").append(landing.article().slug())
                     .append("/index.html\">Read the ").append(Markdown.escape(landing.article().title()))
@@ -960,7 +1039,8 @@ public class SiteGen {
                         """);
             }
             body.append("</main>\n");
-            return shell("", "index.html", cfg.name() + " · " + cfg.tagline(), cfg.tagline(), body.toString());
+            var title = cfg.tagline().isEmpty() ? cfg.name() : cfg.name() + " · " + cfg.tagline();
+            return shell("", "index.html", title, cfg.tagline(), body.toString());
         }
 
         String articlePage(Article article, List<Article> all) {
@@ -976,9 +1056,11 @@ public class SiteGen {
             for (var seg : article.segments()) {
                 body.append(seg.kind().equals("md") ? Markdown.md(seg.text()) : codeBlock(seg.text()));
             }
-            body.append("<p class=\"edit\"><a href=\"").append(cfg.editBase())
-                    .append(article.sourceFile())
-                    .append("\">This page is generated from a test file. Read or improve it on GitHub.</a></p>\n");
+            if (!cfg.editBase().isEmpty()) {
+                body.append("<p class=\"edit\"><a href=\"").append(cfg.editBase())
+                        .append(article.sourceFile())
+                        .append("\">This page is generated from a test file. Read or improve it on GitHub.</a></p>\n");
+            }
             body.append("</main>\n</div>\n");
             return shell("../../", "guides/" + article.slug() + "/index.html",
                     article.title() + " · " + cfg.name(), article.summary(), body.toString());
@@ -1011,14 +1093,12 @@ public class SiteGen {
                       <nav>
                         <a href="%sindex.html#guides">Guides</a>
                         <a href="%sapi/index.html">API</a>
-                        <a href="%s">GitHub</a>
-                        <button id="tswitch" type="button" title="Theme: follows your system">◐</button>
+                        %s<button id="tswitch" type="button" title="Theme: follows your system">◐</button>
                       </nav>
                     </header>
                     %s
                     <footer class="foot">
-                      <p>Every example on this site is a test in the
-                      <a href="%s">repository</a>;
+                      <p>Every example on this site is a test%s;
                       the suite ran green before this page was built.</p>
                     </footer>
                     <script>
@@ -1107,7 +1187,9 @@ public class SiteGen {
                     """.formatted(Markdown.escape(title), Markdown.escape(description), cfg.glyph(),
                     fontLinks(), root, root,
                     Markdown.escape(cfg.name()), cfg.prefix(), page, Markdown.escape(cfg.channel()), root, root,
-                    cfg.repo(), body, cfg.repo())
+                    cfg.repo().isEmpty() ? "" : "<a href=\"" + cfg.repo() + "\">GitHub</a>\n    ",
+                    body,
+                    cfg.repo().isEmpty() ? "" : " in the\n  <a href=\"" + cfg.repo() + "\">repository</a>")
                     .replace("</body>", cfg.watch() ? watchJs(root) + "</body>" : "</body>");
         }
 
