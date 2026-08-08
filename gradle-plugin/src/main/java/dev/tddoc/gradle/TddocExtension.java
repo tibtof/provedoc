@@ -44,4 +44,13 @@ public abstract class TddocExtension {
 
     /** Version-selector label for this build ({@code --channel}). */
     public abstract Property<String> getChannel();
+
+    /** Built-in look: {@code rubric} (default) or {@code plain} ({@code --theme}). */
+    public abstract Property<String> getTheme();
+
+    /** CSS appended after the built-in sheet — variable overrides rebrand the site ({@code --css}). */
+    public abstract org.gradle.api.file.RegularFileProperty getCss();
+
+    /** Full stylesheet replacement; you own the classname contract ({@code --style}). */
+    public abstract org.gradle.api.file.RegularFileProperty getStyle();
 }

@@ -81,6 +81,18 @@ public class SiteMojo extends AbstractMojo {
     @Parameter(property = "tddoc.channel")
     private String channel;
 
+    /** Built-in look: {@code rubric} (default) or {@code plain}. */
+    @Parameter(property = "tddoc.theme")
+    private String theme;
+
+    /** CSS appended after the built-in sheet — variable overrides rebrand the site. */
+    @Parameter(property = "tddoc.css")
+    private File css;
+
+    /** Full stylesheet replacement; you own the classname contract. */
+    @Parameter(property = "tddoc.style")
+    private File style;
+
     @Override
     public void execute() throws MojoExecutionException {
         // Zero-config path: tddoc.yml in the project root supplies anything not
@@ -101,6 +113,13 @@ public class SiteMojo extends AbstractMojo {
             out = config.containsKey("out")
                     ? new File(basedir, config.get("out"))
                     : new File(basedir, "target/site");
+        }
+        theme = orConfig(theme, config, "theme");
+        if (css == null && config.containsKey("css")) {
+            css = new File(basedir, config.get("css"));
+        }
+        if (style == null && config.containsKey("style")) {
+            style = new File(basedir, config.get("style"));
         }
         name = orConfig(name, config, "name");
         tagline = orConfig(tagline, config, "tagline");
@@ -128,6 +147,15 @@ public class SiteMojo extends AbstractMojo {
         addIf(args, "--version", version);
         addIf(args, "--prefix", prefix);
         addIf(args, "--channel", channel);
+        addIf(args, "--theme", theme);
+        if (css != null) {
+            args.add("--css");
+            args.add(css.getPath());
+        }
+        if (style != null) {
+            args.add("--style");
+            args.add(style.getPath());
+        }
         if (javadoc != null) {
             args.add("--javadoc");
             args.add(javadoc.getPath());

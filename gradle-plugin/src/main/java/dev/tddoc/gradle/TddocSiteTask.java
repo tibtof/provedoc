@@ -72,6 +72,20 @@ public abstract class TddocSiteTask extends DefaultTask {
     @Optional
     public abstract Property<String> getChannel();
 
+    @Input
+    @Optional
+    public abstract Property<String> getTheme();
+
+    @org.gradle.api.tasks.InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    @Optional
+    public abstract org.gradle.api.file.RegularFileProperty getCss();
+
+    @org.gradle.api.tasks.InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    @Optional
+    public abstract org.gradle.api.file.RegularFileProperty getStyle();
+
     @TaskAction
     public void generate() throws Exception {
         List<String> args = new ArrayList<>();
@@ -88,9 +102,18 @@ public abstract class TddocSiteTask extends DefaultTask {
         addIf(args, "--version", getSiteVersion());
         addIf(args, "--prefix", getPrefix());
         addIf(args, "--channel", getChannel());
+        addIf(args, "--theme", getTheme());
         if (getJavadoc().isPresent()) {
             args.add("--javadoc");
             args.add(getJavadoc().get().getAsFile().getPath());
+        }
+        if (getCss().isPresent()) {
+            args.add("--css");
+            args.add(getCss().get().getAsFile().getPath());
+        }
+        if (getStyle().isPresent()) {
+            args.add("--style");
+            args.add(getStyle().get().getAsFile().getPath());
         }
         SiteGen.main(args.toArray(String[]::new));
     }

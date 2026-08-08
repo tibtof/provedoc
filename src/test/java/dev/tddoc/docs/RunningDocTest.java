@@ -125,6 +125,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// - `--editBase` — where "edit this page" links point.
 /// - `--version`, `--prefix`, `--channel` — versioned deploys: root for the
 ///   latest release, `v/x.y.z/` for frozen snapshots, `next/` for main.
+/// - `--theme` — built-in look: `rubric` (the default early-print design) or
+///   `plain` (system fonts, neutral colors, no webfont requests).
+/// - `--css` — a file appended after the built-in sheet. The sheet is built
+///   on CSS custom properties, so a few `:root` variable overrides rebrand
+///   the whole site — this is the recommended customization path.
+/// - `--style` — full stylesheet replacement for total control; the class
+///   names become your contract.
 /// - `--watch` — regenerate on every change to the docs tree and auto-reload
 ///   the browser. tddoc ships no server; pair it with the JDK's own:
 ///
