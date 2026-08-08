@@ -24,10 +24,12 @@ engine of [fforj](https://github.com/fforj/fforj) (live at
 real behavioral diffs between them, and a GitHub Pages deploy where a failing
 example can never ship. This repo is that engine becoming a general tool.
 
-Current milestone: generalize the fforj-specific parts behind configuration
-while keeping the copy-paste contract below. Branding and locations are done
-(`--name`, `--tagline`, `--repo`, `--glyph`, `--docs`, `--install`, `--editBase`
-flags); theming and the versioned-deploy workflow templates are next.
+Current milestone: generalization is nearly complete — configuration lives in
+a flat `tddoc.yml` (zero inline config for jbang, Gradle, and Maven), six
+built-in themes ride on design tokens (a 15-line `--css` file rebrands the
+site), articles get multi-language syntax highlighting, a dark/light toggle,
+and `--watch` live preview. Next: the versioned-deploy workflow templates and
+the fforj switchover that proves it all.
 
 ## What it looks like
 
