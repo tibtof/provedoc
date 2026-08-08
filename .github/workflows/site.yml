@@ -54,25 +54,34 @@ jobs:
                 --repo https://github.com/tddoc/tddoc
                 --glyph '✓'
                 --install 'jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central')
+          # /v/ snapshots: every non-latest tag, rendered exactly as its own
+          # generator rendered it — version diffs stay real.
           for TAG in $TAGS; do
+            [ "$TAG" = "$LATEST" ] && continue
             V=${TAG#v}
-            # The root is the site's front door and carries the current brand
-            # (--theme ignored by generators that predate it); /v/ snapshots
-            # stay exactly as their release rendered itself.
-            if [ "$TAG" = "$LATEST" ]; then
-              PREFIX=""; OUT="$GITHUB_WORKSPACE/build/pages"; EXTRA=(--theme brutalist)
-            else
-              PREFIX="v/$V/"; OUT="$GITHUB_WORKSPACE/build/pages/v/$V"; EXTRA=()
-            fi
-            echo "::group::$TAG -> ${PREFIX:-<root>}"
+            echo "::group::$TAG -> v/$V/"
             git worktree add "wt-$V" "$TAG"
             (cd "wt-$V" \
               && ./gradlew --no-daemon -q build javadoc \
-              && java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" "${EXTRA[@]}" \
-                   --out "$OUT" --version "$V" --prefix "$PREFIX" --channel "$V")
+              && java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" \
+                   --out "$GITHUB_WORKSPACE/build/pages/v/$V" --version "$V" \
+                   --prefix "v/$V/" --channel "$V")
             git worktree remove --force "wt-$V"
             echo "::endgroup::"
           done
+          # Root: the latest release's CONTENT (docs + javadoc from its tag),
+          # rendered by MAIN's generator so the front door always carries the
+          # current design. Old tags never need to understand new flags.
+          V=${LATEST#v}
+          echo "::group::$LATEST content + main generator -> <root>"
+          git worktree add wt-root "$LATEST"
+          (cd wt-root && ./gradlew --no-daemon -q build javadoc)
+          java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" --theme brutalist \
+            --docs wt-root/src/test/java/dev/tddoc/docs \
+            --javadoc wt-root/build/docs/javadoc \
+            --out build/pages --version "$V" --prefix "" --channel "$V"
+          git worktree remove --force wt-root
+          echo "::endgroup::"
           echo "::group::main -> next/"
           ./gradlew --no-daemon -q build javadoc
           java src/main/java/dev/tddoc/SiteGen.java \
