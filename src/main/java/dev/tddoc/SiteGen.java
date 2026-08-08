@@ -916,6 +916,67 @@ public class SiteGen {
                           --rule: #2C2C2C; --code-bg: #1C1C1C; --card: #181818;
                         }
                         """, false),
+                // Béton brut: concrete grays, rebar-rust accent, one grotesque
+                // for everything, hard edges and heavy rules.
+                "brutalist", new Theme("""
+
+                        /* theme: brutalist */
+                        :root {
+                          --font-prose: "Helvetica Neue", Helvetica, Arial, sans-serif;
+                          --font-mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          --radius: 0; --radius-card: 0; --radius-chip: 0; --radius-inline: 0;
+                          --paper: #D6D3CC; --ink: #1A1A18; --rubric: #A5502A; --muted: #55534E;
+                          --rule: #1A1A18; --code-bg: #C9C6BF; --card: #DEDBD4;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                          :root:not([data-theme="light"]) {
+                            --paper: #2B2B28; --ink: #D8D6D1; --rubric: #C97C50; --muted: #8F8D86;
+                            --rule: #D8D6D1; --code-bg: #232320; --card: #31312D;
+                          }
+                        }
+                        :root[data-theme="dark"] {
+                          --paper: #2B2B28; --ink: #D8D6D1; --rubric: #C97C50; --muted: #8F8D86;
+                          --rule: #D8D6D1; --code-bg: #232320; --card: #31312D;
+                        }
+                        /* The page is a cast panel: shadow falls into both edges
+                           (concave), a hairline catches light where the surface folds. */
+                        body {
+                          background-image: linear-gradient(90deg,
+                            rgba(0, 0, 0, 0.18) 0,
+                            rgba(0, 0, 0, 0.05) 80px,
+                            rgba(255, 255, 255, 0.12) 140px,
+                            transparent 143px,
+                            transparent calc(100% - 143px),
+                            rgba(255, 255, 255, 0.12) calc(100% - 140px),
+                            rgba(0, 0, 0, 0.05) calc(100% - 80px),
+                            rgba(0, 0, 0, 0.18) 100%);
+                        }
+                        .thesis h1, .article h1, .article h2, .wordmark {
+                          text-transform: uppercase; letter-spacing: -0.01em; font-weight: 900;
+                        }
+                        /* The name is cast, not printed. */
+                        .thesis h1 {
+                          display: inline-block; background: var(--ink); color: var(--paper);
+                          padding: 0.1em 0.35em;
+                        }
+                        .glyph { color: var(--ink); }
+                        .eyebrow {
+                          display: inline-block; background: var(--ink); color: var(--paper);
+                          padding: 0.35em 0.7em; letter-spacing: 0.22em;
+                        }
+                        section { border-top-width: 8px; }
+                        .top { border-bottom-width: 8px; }
+                        .foot { border-top-width: 8px; }
+                        .code, .card, #vsel, #tswitch, .copybtn {
+                          border-width: 2px; border-color: var(--ink);
+                        }
+                        .code, .card { box-shadow: 8px 8px 0 var(--ink); }
+                        .card:hover { border-color: var(--ink); transform: translate(-2px, -2px);
+                          box-shadow: 10px 10px 0 var(--ink); }
+                        a { text-decoration-thickness: 3px; }
+                        .article h2::before { content: ""; }
+                        .sidenav .here::before { content: "> "; }
+                        """, false),
                 // Cool neutral grays with a restrained blue: the corporate default.
                 "slate", new Theme("""
 
