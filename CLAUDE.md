@@ -54,14 +54,18 @@ original design rationale).
 
 ## Current state and roadmap
 
-- Branding is generalized behind flags: `--name`, `--tagline`, `--repo`,
-  `--glyph`, `--install` (renders only when given; `{version}` substituted),
-  `--editBase`, plus the original `--docs/--out/--javadoc/--version/--prefix/--channel`.
-- Roadmap issues, in recommended order: #3 design-token CSS refactor (do
-  first, enables the rest), #4 dark/light toggle (depends on #3), #2 flat
-  tddoc.yml config (independent, any time).
-- Still fforj-shaped: the CSS itself (rubrication design), the versioned-deploy
-  workflow templates, and Kotlin/Groovy source support.
+- Released: 0.1.0 (core), 0.2.x (Gradle/Maven plugins as thin wrappers over
+  SiteGen.main, tddoc.yml as primary config, --watch, recursive discovery),
+  0.3.0 (design tokens + six built-in themes + --css/--style, multi-language
+  fence highlighting, dark/light toggle, neutral defaults). jbang catalog:
+  `jbang tddoc@tddoc`. Docs site auto-deploys to GitHub Pages on push to main.
+- Config: tddoc.yml (flat subset, parsed by SiteGen.readConfig — public,
+  plugins reuse it). Precedence: flag/explicit plugin config > yml > default.
+  Yml-relative paths resolve against the yml's directory.
+- Open issues: #13 Kotlin autodetect, #25 tddoc.dev DNS (user action), #8/#20
+  parked.
+- Still fforj-shaped: the versioned-deploy workflow templates and
+  Kotlin/Groovy source support.
 - The fforj switchover (its `site` task consuming this tool) is the proof of
   generalization; record it in fforj's `decisions.md` when it happens.
 
