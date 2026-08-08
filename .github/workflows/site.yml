@@ -56,12 +56,19 @@ jobs:
                 --install 'jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central')
           for TAG in $TAGS; do
             V=${TAG#v}
-            if [ "$TAG" = "$LATEST" ]; then PREFIX=""; OUT="$GITHUB_WORKSPACE/build/pages"; else PREFIX="v/$V/"; OUT="$GITHUB_WORKSPACE/build/pages/v/$V"; fi
+            # The root is the site's front door and carries the current brand
+            # (--theme ignored by generators that predate it); /v/ snapshots
+            # stay exactly as their release rendered itself.
+            if [ "$TAG" = "$LATEST" ]; then
+              PREFIX=""; OUT="$GITHUB_WORKSPACE/build/pages"; EXTRA=(--theme brutalist)
+            else
+              PREFIX="v/$V/"; OUT="$GITHUB_WORKSPACE/build/pages/v/$V"; EXTRA=()
+            fi
             echo "::group::$TAG -> ${PREFIX:-<root>}"
             git worktree add "wt-$V" "$TAG"
             (cd "wt-$V" \
               && ./gradlew --no-daemon -q build javadoc \
-              && java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" \
+              && java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" "${EXTRA[@]}" \
                    --out "$OUT" --version "$V" --prefix "$PREFIX" --channel "$V")
             git worktree remove --force "wt-$V"
             echo "::endgroup::"
