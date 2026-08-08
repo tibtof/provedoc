@@ -55,6 +55,59 @@ class SiteGenTest {
     }
 
     @Test
+    void themes_and_css_overrides_layer_onto_the_token_sheet(@TempDir Path tmp) throws Exception {
+        Path docs = docsWithOneArticle(tmp);
+        Path override = tmp.resolve("brand.css");
+        Files.writeString(override, ":root { --rubric: #C0341D; }\n");
+
+        SiteGen.main(new String[]{"--docs", docs.toString(),
+                "--out", tmp.resolve("plain").toString(), "--theme", "plain"});
+        String plainCss = Files.readString(tmp.resolve("plain/style.css"));
+        String plainHtml = Files.readString(tmp.resolve("plain/index.html"));
+        assertTrue(plainCss.contains("theme: plain"), "plain overrides appended");
+        assertFalse(plainHtml.contains("googleapis"), "plain theme drops webfont links");
+
+        SiteGen.main(new String[]{"--docs", docs.toString(),
+                "--out", tmp.resolve("branded").toString(), "--css", override.toString()});
+        String brandedCss = Files.readString(tmp.resolve("branded/style.css"));
+        assertTrue(brandedCss.contains("--rubric: #C0341D"), "--css appends after the sheet");
+
+        SiteGen.main(new String[]{"--docs", docs.toString(),
+                "--out", tmp.resolve("styled").toString(), "--style", override.toString()});
+        assertEquals(Files.readString(override), Files.readString(tmp.resolve("styled/style.css")),
+                "--style replaces the sheet entirely");
+
+        var thrown = assertThrows(IllegalArgumentException.class, () ->
+                SiteGen.main(new String[]{"--docs", docs.toString(),
+                        "--out", tmp.resolve("bad").toString(), "--theme", "nope"}));
+        assertTrue(thrown.getMessage().contains("unknown theme"));
+    }
+
+    private static Path docsWithOneArticle(Path tmp) throws Exception {
+        Path docs = Files.createDirectories(tmp.resolve("docs-" + tmp.getFileName()));
+        Files.writeString(docs.resolve("MiniDocTest.java"), """
+                /// ---
+                /// title: Mini
+                /// slug: mini
+                /// order: 1
+                /// summary: Minimal.
+                /// ---
+                ///
+                /// Hello.
+                ///
+                /// [landing]
+                class MiniDocTest {
+                    @""" + """
+                Test
+                    void truth() {
+                        assert true;
+                    }
+                }
+                """);
+        return docs;
+    }
+
+    @Test
     void cli_flags_win_over_config_and_paths_resolve_against_the_config_file(@TempDir Path tmp) throws Exception {
         Path project = Files.createDirectories(tmp.resolve("project"));
         Path docs = Files.createDirectories(project.resolve("docs"));

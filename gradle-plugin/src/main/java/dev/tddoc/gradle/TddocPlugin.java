@@ -25,7 +25,9 @@ public class TddocPlugin implements Plugin<Project> {
         var ext = project.getExtensions().create("tddoc", TddocExtension.class);
         ext.getDocs().convention(project.getLayout().getProjectDirectory().dir("src/test/java"));
         ext.getOut().convention(project.getLayout().getBuildDirectory().dir("site"));
-        ext.getVersion().convention(project.provider(() -> String.valueOf(project.getVersion())));
+        // Gradle's literal "unspecified" placeholder must not reach the site (#24).
+        ext.getVersion().convention(project.provider(() -> String.valueOf(project.getVersion()))
+                .map(v -> "unspecified".equals(v) ? "dev" : v));
 
         var yml = project.getLayout().getProjectDirectory().file("tddoc.yml").getAsFile();
         if (yml.isFile()) {
@@ -72,6 +74,15 @@ public class TddocPlugin implements Plugin<Project> {
             if (config.containsKey("channel")) {
                 ext.getChannel().convention(config.get("channel"));
             }
+            if (config.containsKey("theme")) {
+                ext.getTheme().convention(config.get("theme"));
+            }
+            if (config.containsKey("css")) {
+                ext.getCss().convention(dir.file(config.get("css")));
+            }
+            if (config.containsKey("style")) {
+                ext.getStyle().convention(dir.file(config.get("style")));
+            }
         }
 
         var site = project.getTasks().register("tddocSite", TddocSiteTask.class, task -> {
@@ -89,6 +100,9 @@ public class TddocPlugin implements Plugin<Project> {
             task.getSiteVersion().set(ext.getVersion());
             task.getPrefix().set(ext.getPrefix());
             task.getChannel().set(ext.getChannel());
+            task.getTheme().set(ext.getTheme());
+            task.getCss().set(ext.getCss());
+            task.getStyle().set(ext.getStyle());
         });
 
         if (yml.isFile()) {

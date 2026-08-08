@@ -72,7 +72,7 @@ public class SiteGen {
         }
         // style.css goes last: the watch-mode reload script polls its
         // Last-Modified, so it must move only after all pages are complete.
-        Files.writeString(out.resolve("style.css"), Html.CSS);
+        Files.writeString(out.resolve("style.css"), html.stylesheet());
         System.out.println("site: " + out.toAbsolutePath()
                 + " (" + parsed.articles().size() + " guides, version " + config.version() + ")");
     }
@@ -156,7 +156,8 @@ public class SiteGen {
      */
     record Config(Path docs, Path out, Path javadoc, String version, String prefix,
                   String channel, String name, String tagline, String repo, String glyph,
-                  String editBase, String install, boolean watch) {
+                  String editBase, String install, String theme, Path css, Path style,
+                  boolean watch) {
 
         /**
          * Precedence: CLI flag > config file > built-in default. The config
@@ -180,7 +181,7 @@ public class SiteGen {
                 var base = configPath.toAbsolutePath().getParent();
                 readConfig(configPath).forEach((key, value) -> {
                     if (!opts.containsKey(key)) {
-                        opts.put(key, Set.of("docs", "out", "javadoc").contains(key)
+                        opts.put(key, Set.of("docs", "out", "javadoc", "css", "style").contains(key)
                                 ? base.resolve(value).toString() : value);
                     }
                 });
@@ -209,6 +210,9 @@ public class SiteGen {
                     // Where "edit this page" links point: the doc-test sources.
                     opts.getOrDefault("editBase", repo + "/blob/main/" + docs + "/"),
                     opts.getOrDefault("install", ""),
+                    opts.getOrDefault("theme", "rubric"),
+                    opts.containsKey("css") ? Path.of(opts.get("css")) : null,
+                    opts.containsKey("style") ? Path.of(opts.get("style")) : null,
                     watch);
         }
     }
@@ -691,12 +695,65 @@ public class SiteGen {
 
     static class Html {
 
+        /**
+         * A built-in look. {@code overrides} is CSS appended after the base
+         * sheet (tokens make a handful of variable overrides a full rebrand);
+         * {@code webfonts} controls whether pages link the Google Fonts used
+         * by the default tokens.
+         */
+        record Theme(String overrides, boolean webfonts) {}
+
+        static final Map<String, Theme> THEMES = Map.of(
+                // The default early-print look (accent, serifs, webfonts).
+                "rubric", new Theme("", true),
+                // Unopinionated: system fonts, neutral accent, no webfont links.
+                "plain", new Theme("""
+
+                        /* theme: plain */
+                        :root {
+                          --font-prose: system-ui, -apple-system, "Segoe UI", sans-serif;
+                          --font-mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+                          --paper: #FFFFFF; --ink: #1B1B1B; --rubric: #0B5FFF; --muted: #5C5C66;
+                          --rule: #E4E4E9; --code-bg: #F5F6F8; --card: #FFFFFF;
+                        }
+                        @media (prefers-color-scheme: dark) {
+                          :root {
+                            --paper: #131316; --ink: #E6E6EA; --rubric: #6FA1FF; --muted: #9A9AA5;
+                            --rule: #2A2A31; --code-bg: #1D1D22; --card: #19191E;
+                          }
+                        }
+                        """, false));
+
         final Config cfg;
         final Landing landing;
+        final Theme theme;
 
         Html(Config cfg, Landing landing) {
             this.cfg = cfg;
             this.landing = landing;
+            this.theme = THEMES.get(cfg.theme());
+            if (theme == null) {
+                throw new IllegalArgumentException(
+                        "unknown theme: " + cfg.theme() + " (built-in: " + THEMES.keySet() + ")");
+            }
+        }
+
+        /**
+         * The sheet actually written as style.css. Layering, weakest first:
+         * base tokens+rules, then the named theme's overrides, then --css
+         * (small variable-override files, the recommended rebrand path).
+         * --style replaces everything; from then on the caller owns the
+         * classname contract.
+         */
+        String stylesheet() throws IOException {
+            if (cfg.style() != null) {
+                return Files.readString(cfg.style());
+            }
+            var sheet = new StringBuilder(CSS).append(theme.overrides());
+            if (cfg.css() != null) {
+                sheet.append("\n/* --css overrides */\n").append(Files.readString(cfg.css()));
+            }
+            return sheet.toString();
         }
 
         String landingPage(List<Article> articles) {
@@ -784,10 +841,7 @@ public class SiteGen {
                     <title>%s</title>
                     <meta name="description" content="%s">
                     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23177245%%22>%s</text></svg>">
-                    <link rel="preconnect" href="https://fonts.googleapis.com">
-                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-                    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-                    <link rel="stylesheet" href="%sstyle.css">
+                    %s<link rel="stylesheet" href="%sstyle.css">
                     </head>
                     <body>
                     <header class="top">
@@ -867,10 +921,22 @@ public class SiteGen {
                     </script>
                     </body>
                     </html>
-                    """.formatted(Markdown.escape(title), Markdown.escape(description), cfg.glyph(), root, root,
+                    """.formatted(Markdown.escape(title), Markdown.escape(description), cfg.glyph(),
+                    fontLinks(), root, root,
                     Markdown.escape(cfg.name()), cfg.prefix(), page, Markdown.escape(cfg.channel()), root, root,
                     cfg.repo(), body, cfg.repo())
                     .replace("</body>", cfg.watch() ? watchJs(root) + "</body>" : "</body>");
+        }
+
+        String fontLinks() {
+            if (!theme.webfonts()) {
+                return "";
+            }
+            return """
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+                    """;
         }
 
         /** Watch-mode only: reload the page when style.css (written last) moves. */
@@ -900,6 +966,9 @@ public class SiteGen {
                 :root {
                   --paper: #FCFBF8; --ink: #1C1A16; --rubric: #177245; --muted: #6F6A5F;
                   --rule: #E6E2D8; --code-bg: #F5F3EC; --card: #FFFFFF;
+                  --font-prose: "Newsreader", Georgia, serif;
+                  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+                  --radius: 8px; --radius-card: 10px; --radius-chip: 6px; --radius-inline: 4px;
                 }
                 @media (prefers-color-scheme: dark) {
                   :root {
@@ -911,23 +980,23 @@ public class SiteGen {
                 html { -webkit-text-size-adjust: 100%; }
                 body {
                   background: var(--paper); color: var(--ink);
-                  font-family: "Newsreader", Georgia, serif;
+                  font-family: var(--font-prose);
                   font-optical-sizing: auto; font-size: 1.125rem; line-height: 1.65;
                 }
                 a { color: inherit; text-decoration-color: var(--rubric); text-decoration-thickness: 1px; text-underline-offset: 3px; }
                 a:hover { color: var(--rubric); }
                 code, pre {
-                  font-family: "JetBrains Mono", ui-monospace, monospace;
+                  font-family: var(--font-mono);
                   font-variant-ligatures: contextual;
                 }
                 p > code, li > code, h1 code, h2 code, h3 code {
                   font-size: 0.82em; background: var(--code-bg);
-                  padding: 0.08em 0.35em; border-radius: 4px;
+                  padding: 0.08em 0.35em; border-radius: var(--radius-inline);
                 }
                 .rub { color: var(--rubric); }
                 .lig { color: var(--rubric); }
                 .eyebrow {
-                  font-family: "JetBrains Mono", monospace; font-size: 0.72rem;
+                  font-family: var(--font-mono); font-size: 0.72rem;
                   letter-spacing: 0.18em; color: var(--rubric); margin-bottom: 0.9rem;
                 }
 
@@ -939,9 +1008,9 @@ public class SiteGen {
                 .wordmark { font-size: 1.5rem; font-weight: 600; text-decoration: none; }
                 .brand { display: flex; align-items: baseline; gap: 0.9rem; }
                 #vsel {
-                  font-family: "JetBrains Mono", monospace; font-size: 0.72rem;
+                  font-family: var(--font-mono); font-size: 0.72rem;
                   color: var(--muted); background: var(--code-bg);
-                  border: 1px solid var(--rule); border-radius: 6px; padding: 0.2rem 0.4rem;
+                  border: 1px solid var(--rule); border-radius: var(--radius-chip); padding: 0.2rem 0.4rem;
                 }
                 #vsel:hover { border-color: var(--rubric); color: var(--ink); }
                 .top nav { display: flex; gap: 1.6rem; }
@@ -961,7 +1030,7 @@ public class SiteGen {
                   font-feature-settings: "liga", "dlig";
                 }
                 .caption {
-                  font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+                  font-family: var(--font-mono); font-size: 0.68rem;
                   letter-spacing: 0.14em; color: var(--muted); margin-top: 1rem;
                 }
                 .thesis h1 {
@@ -974,7 +1043,7 @@ public class SiteGen {
                 .hero { border-top: none; }
 
                 .code {
-                  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px;
+                  background: var(--code-bg); border: 1px solid var(--rule); border-radius: var(--radius);
                   padding: 1.1rem 1.3rem; overflow-x: auto;
                   font-size: 0.86rem; line-height: 1.6; margin: 1.3rem 0;
                 }
@@ -983,17 +1052,17 @@ public class SiteGen {
                 .code[data-lang]::before {
                   content: attr(data-lang);
                   float: right; margin-left: 1rem;
-                  font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+                  font-family: var(--font-mono); font-size: 0.68rem;
                   letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
                   transition: opacity 0.15s;
                 }
                 .codewrap:hover .code[data-lang]::before { opacity: 0; }
                 .copybtn {
                   position: absolute; top: 0.55rem; right: 0.6rem;
-                  font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+                  font-family: var(--font-mono); font-size: 0.68rem;
                   letter-spacing: 0.08em; color: var(--muted);
                   background: var(--paper); border: 1px solid var(--rule);
-                  border-radius: 6px; padding: 0.2rem 0.5rem; cursor: pointer;
+                  border-radius: var(--radius-chip); padding: 0.2rem 0.5rem; cursor: pointer;
                   opacity: 0; transition: opacity 0.15s;
                 }
                 .codewrap:hover .copybtn, .copybtn:focus-visible { opacity: 1; }
@@ -1008,7 +1077,7 @@ public class SiteGen {
                 table { border-collapse: collapse; width: 100%; font-size: 0.95em; }
                 th, td { text-align: left; padding: 0.5rem 0.9rem 0.5rem 0; border-bottom: 1px solid var(--rule); }
                 th {
-                  font-family: "JetBrains Mono", monospace; font-size: 0.68rem;
+                  font-family: var(--font-mono); font-size: 0.68rem;
                   letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
                 }
                 article img { max-width: 100%; }
@@ -1023,7 +1092,7 @@ public class SiteGen {
                 }
                 .card {
                   display: block; background: var(--card); border: 1px solid var(--rule);
-                  border-radius: 10px; padding: 1.2rem 1.3rem; text-decoration: none;
+                  border-radius: var(--radius-card); padding: 1.2rem 1.3rem; text-decoration: none;
                 }
                 .card:hover { border-color: var(--rubric); color: inherit; }
                 .card h3 { font-weight: 600; margin-bottom: 0.4rem; }
