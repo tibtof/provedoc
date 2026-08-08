@@ -870,10 +870,14 @@ public class SiteGen {
                           --rule: #E4E4E9; --code-bg: #F5F6F8; --card: #FFFFFF;
                         }
                         @media (prefers-color-scheme: dark) {
-                          :root {
+                          :root:not([data-theme="light"]) {
                             --paper: #131316; --ink: #E6E6EA; --rubric: #6FA1FF; --muted: #9A9AA5;
                             --rule: #2A2A31; --code-bg: #1D1D22; --card: #19191E;
                           }
+                        }
+                        :root[data-theme="dark"] {
+                          --paper: #131316; --ink: #E6E6EA; --rubric: #6FA1FF; --muted: #9A9AA5;
+                          --rule: #2A2A31; --code-bg: #1D1D22; --card: #19191E;
                         }
                         """, false));
 
@@ -995,6 +999,7 @@ public class SiteGen {
                     <meta name="description" content="%s">
                     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22 font-family=%%22Georgia,serif%%22 fill=%%22%%23177245%%22>%s</text></svg>">
                     %s<link rel="stylesheet" href="%sstyle.css">
+                    <script>try { var t = localStorage.getItem("tddoc-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
                     </head>
                     <body>
                     <header class="top">
@@ -1007,6 +1012,7 @@ public class SiteGen {
                         <a href="%sindex.html#guides">Guides</a>
                         <a href="%sapi/index.html">API</a>
                         <a href="%s">GitHub</a>
+                        <button id="tswitch" type="button" title="Theme: follows your system">◐</button>
                       </nav>
                     </header>
                     %s
@@ -1050,6 +1056,30 @@ public class SiteGen {
                               .catch(function () { location.href = root + sel.value; });
                           };
                         }).catch(function () {});
+                    })();
+                    (function () {
+                      var btn = document.getElementById("tswitch");
+                      var faces = { auto: "◐", light: "☀", dark: "☾" };
+                      var titles = { auto: "Theme: follows your system", light: "Theme: light", dark: "Theme: dark" };
+                      function current() {
+                        try { return localStorage.getItem("tddoc-theme") || "auto"; } catch (e) { return "auto"; }
+                      }
+                      function apply(mode) {
+                        if (mode === "auto") {
+                          delete document.documentElement.dataset.theme;
+                          try { localStorage.removeItem("tddoc-theme"); } catch (e) {}
+                        } else {
+                          document.documentElement.dataset.theme = mode;
+                          try { localStorage.setItem("tddoc-theme", mode); } catch (e) {}
+                        }
+                        btn.textContent = faces[mode];
+                        btn.title = titles[mode];
+                      }
+                      apply(current());
+                      btn.onclick = function () {
+                        var order = ["auto", "light", "dark"];
+                        apply(order[(order.indexOf(current()) + 1) %% 3]);
+                      };
                     })();
                     (function () {
                       document.querySelectorAll("pre.code").forEach(function (pre) {
@@ -1123,11 +1153,17 @@ public class SiteGen {
                   --font-mono: "JetBrains Mono", ui-monospace, monospace;
                   --radius: 8px; --radius-card: 10px; --radius-chip: 6px; --radius-inline: 4px;
                 }
+                /* Dark palette applies via OS preference unless the reader chose
+                   explicitly; an explicit choice (data-theme) always wins. */
                 @media (prefers-color-scheme: dark) {
-                  :root {
+                  :root:not([data-theme="light"]) {
                     --paper: #181715; --ink: #E8E4DB; --rubric: #3FAE72; --muted: #9A947F;
                     --rule: #2E2B26; --code-bg: #211F1B; --card: #1E1C19;
                   }
+                }
+                :root[data-theme="dark"] {
+                  --paper: #181715; --ink: #E8E4DB; --rubric: #3FAE72; --muted: #9A947F;
+                  --rule: #2E2B26; --code-bg: #211F1B; --card: #1E1C19;
                 }
                 * { box-sizing: border-box; margin: 0; }
                 html { -webkit-text-size-adjust: 100%; }
@@ -1166,7 +1202,14 @@ public class SiteGen {
                   border: 1px solid var(--rule); border-radius: var(--radius-chip); padding: 0.2rem 0.4rem;
                 }
                 #vsel:hover { border-color: var(--rubric); color: var(--ink); }
-                .top nav { display: flex; gap: 1.6rem; }
+                .top nav { display: flex; gap: 1.6rem; align-items: baseline; }
+                #tswitch {
+                  font-family: var(--font-mono); font-size: 0.85rem; line-height: 1;
+                  color: var(--muted); background: var(--code-bg);
+                  border: 1px solid var(--rule); border-radius: var(--radius-chip);
+                  padding: 0.25rem 0.45rem; cursor: pointer;
+                }
+                #tswitch:hover { border-color: var(--rubric); color: var(--ink); }
                 .top nav a { text-decoration: none; font-size: 1rem; color: var(--muted); }
                 .top nav a:hover { color: var(--rubric); }
 
