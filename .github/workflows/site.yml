@@ -1,11 +1,16 @@
 name: site
 
-# Docs site: every push to main rebuilds and deploys GitHub Pages. The suite
-# runs first, so a broken example can never reach a reader.
+# Versioned docs site (ADR-5 model): site root = latest release, /v/X.Y.Z/ =
+# frozen snapshot built by THAT tag's own generator (so version diffs are real,
+# tested behavioral differences), /next/ = main. The whole site is rebuilt
+# statelessly on every run — no gh-pages branch state to corrupt. Cost grows
+# ~1-2 min per release; if that ever hurts, switch to a stateful branch that
+# only rebuilds the changed slice.
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -26,24 +31,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # for the latest release tag
+          fetch-depth: 0 # all tags, checked out individually below
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
-      - name: Test and javadoc
-        run: ./gradlew build javadoc
-      - name: Generate site
-        # Branding and paths come from tddoc.yml (dogfooding the config file);
-        # only per-build values are flags.
+      - name: Build every release with its own generator
         run: |
-          VERSION=$(git tag -l 'v*' --sort=-v:refname | head -1 | sed 's/^v//')
+          set -euo pipefail
+          mkdir -p build/pages
+          TAGS=$(git tag -l 'v*' --sort=-v:refname)
+          LATEST=$(echo "$TAGS" | head -1)
+          # Flags accepted by every generator since v0.1.0; tags whose checkout
+          # carries a tddoc.yml would work bare, but explicit flags keep the
+          # oldest snapshots buildable too. Unknown flags are ignored by old
+          # generators, so this list may grow safely.
+          ARGS=(--docs src/test/java/dev/tddoc/docs
+                --javadoc build/docs/javadoc
+                --name tddoc
+                --tagline 'test-driven documentation: proven, not promised'
+                --repo https://github.com/tddoc/tddoc
+                --glyph '✓'
+                --install 'jbang tddoc@tddoc --docs src/test/java/your/pkg/docs # or dev.tddoc:tddoc:{version} from Maven Central')
+          for TAG in $TAGS; do
+            V=${TAG#v}
+            if [ "$TAG" = "$LATEST" ]; then PREFIX=""; OUT="$GITHUB_WORKSPACE/build/pages"; else PREFIX="v/$V/"; OUT="$GITHUB_WORKSPACE/build/pages/v/$V"; fi
+            echo "::group::$TAG -> ${PREFIX:-<root>}"
+            git worktree add "wt-$V" "$TAG"
+            (cd "wt-$V" \
+              && ./gradlew --no-daemon -q build javadoc \
+              && java src/main/java/dev/tddoc/SiteGen.java "${ARGS[@]}" \
+                   --out "$OUT" --version "$V" --prefix "$PREFIX" --channel "$V")
+            git worktree remove --force "wt-$V"
+            echo "::endgroup::"
+          done
+          echo "::group::main -> next/"
+          ./gradlew --no-daemon -q build javadoc
           java src/main/java/dev/tddoc/SiteGen.java \
-            --out build/site \
-            --version "${VERSION:-0.1.0}"
+            --out build/pages/next --version "${LATEST#v}-next" --prefix "next/" --channel next
+          echo "::endgroup::"
+          {
+            echo '{"entries":['
+            echo "{\"path\":\"\",\"label\":\"${LATEST#v} (latest)\"},"
+            for TAG in $TAGS; do
+              [ "$TAG" = "$LATEST" ] && continue
+              V=${TAG#v}
+              echo "{\"path\":\"v/$V/\",\"label\":\"$V\"},"
+            done
+            echo '{"path":"next/","label":"next"}'
+            echo ']}'
+          } > build/pages/versions.json
+          cat build/pages/versions.json
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build/site
+          path: build/pages
       - uses: actions/deploy-pages@v4
         id: deploy
