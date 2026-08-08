@@ -108,6 +108,20 @@ class SiteGenTest {
     }
 
     @Test
+    void fences_highlight_per_language() {
+        assertTrue(SiteGen.Highlighter.highlight("fun main() {}", "kotlin")
+                .contains("<span class=\"c-kw\">fun</span>"), "kotlin keywords");
+        assertTrue(SiteGen.Highlighter.highlight("# comment\necho hi", "bash")
+                .contains("<span class=\"c-com\"># comment</span>"), "bash hash comments");
+        assertTrue(SiteGen.Highlighter.highlight("<plugin id=\"x\">", "xml")
+                .contains("<span class=\"c-kw\">plugin</span>"), "xml tag names");
+        assertTrue(SiteGen.Highlighter.highlight("name: tddoc", "yaml")
+                .contains("<span class=\"c-kw\">name</span>"), "yaml keys");
+        assertEquals("plain &amp; safe", SiteGen.Highlighter.highlight("plain & safe", "unknown-lang"),
+                "unknown languages escape without highlighting");
+    }
+
+    @Test
     void cli_flags_win_over_config_and_paths_resolve_against_the_config_file(@TempDir Path tmp) throws Exception {
         Path project = Files.createDirectories(tmp.resolve("project"));
         Path docs = Files.createDirectories(project.resolve("docs"));

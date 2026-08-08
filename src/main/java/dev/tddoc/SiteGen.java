@@ -427,7 +427,8 @@ public class SiteGen {
                     if (s.startsWith("```")) {
                         var lang = fenceLang.isEmpty() ? "" : " data-lang=\"" + escape(fenceLang) + "\"";
                         st.html.append("<pre class=\"code\"").append(lang).append("><code>")
-                                .append(escape(String.join("\n", fence))).append("</code></pre>\n");
+                                .append(Highlighter.highlight(String.join("\n", fence), fenceLang))
+                                .append("</code></pre>\n");
                         fence.clear();
                         inFence = false;
                     } else {
@@ -592,13 +593,77 @@ public class SiteGen {
                 "super", "switch", "synchronized", "this", "throw", "throws", "try", "var",
                 "void", "volatile", "while", "yield", "permits", "non-sealed");
 
+        /**
+         * What the generic tokenizer needs to know about a language: its
+         * keyword set and its line-comment marker. One tokenizer serves every
+         * C-shaped language; xml and yaml get their own small scanners.
+         */
+        record Lang(Set<String> keywords, String lineComment) {}
+
+        static final Map<String, Lang> LANGS = Map.ofEntries(
+                Map.entry("java", new Lang(KEYWORDS, "//")),
+                Map.entry("kotlin", new Lang(Set.of(
+                        "abstract", "as", "break", "by", "catch", "class", "companion",
+                        "constructor", "continue", "data", "do", "else", "enum", "false",
+                        "final", "finally", "for", "fun", "get", "if", "import", "in",
+                        "init", "interface", "internal", "is", "lateinit", "null",
+                        "object", "open", "override", "package", "private", "protected",
+                        "public", "return", "sealed", "set", "super", "suspend", "this",
+                        "throw", "true", "try", "typealias", "val", "var", "when",
+                        "while"), "//")),
+                Map.entry("groovy", new Lang(Set.of(
+                        "abstract", "assert", "boolean", "break", "case", "catch",
+                        "class", "continue", "def", "default", "do", "else", "enum",
+                        "extends", "false", "final", "finally", "for", "if",
+                        "implements", "import", "in", "instanceof", "interface", "new",
+                        "null", "package", "private", "protected", "public", "return",
+                        "static", "super", "switch", "this", "throw", "throws", "trait",
+                        "true", "try", "var", "void", "while"), "//")),
+                Map.entry("bash", new Lang(Set.of(
+                        "if", "then", "else", "elif", "fi", "for", "in", "do", "done",
+                        "while", "until", "case", "esac", "function", "return", "exit",
+                        "export", "local", "set", "source", "echo", "cd"), "#")),
+                Map.entry("json", new Lang(Set.of("true", "false", "null"), null)),
+                Map.entry("properties", new Lang(Set.of(), "#")));
+
+        static Lang lang(String name) {
+            return switch (name) {
+                case "kt", "kts" -> LANGS.get("kotlin");
+                case "sh", "shell", "zsh" -> LANGS.get("bash");
+                case "gradle" -> LANGS.get("groovy");
+                default -> LANGS.get(name);
+            };
+        }
+
+        /**
+         * Routes a fence's info string to the right scanner. Unknown
+         * languages render escaped but unhighlighted — never an error, the
+         * page must always build.
+         */
+        static String highlight(String code, String language) {
+            return switch (language) {
+                case "", "text" -> Markdown.escape(code);
+                case "xml", "html" -> xml(code);
+                case "yaml", "yml" -> yaml(code);
+                default -> {
+                    var spec = lang(language);
+                    yield spec == null ? Markdown.escape(code) : cLike(code, spec);
+                }
+            };
+        }
+
+        /** The Java highlighter, kept as the default for example code. */
         static String highlight(String code) {
+            return cLike(code, LANGS.get("java"));
+        }
+
+        static String cLike(String code, Lang lang) {
             var out = new StringBuilder();
             int i = 0;
             int n = code.length();
             while (i < n) {
                 char c = code.charAt(i);
-                if (c == '/' && i + 1 < n && code.charAt(i + 1) == '/') {
+                if (lang.lineComment() != null && code.startsWith(lang.lineComment(), i)) {
                     int end = code.indexOf('\n', i);
                     if (end < 0) end = n;
                     out.append("<span class=\"c-com\">").append(Markdown.escape(code.substring(i, end)))
@@ -626,7 +691,7 @@ public class SiteGen {
                         end++;
                     }
                     var word = code.substring(i, end);
-                    if (KEYWORDS.contains(word)) {
+                    if (lang.keywords().contains(word)) {
                         out.append("<span class=\"c-kw\">").append(word).append("</span>");
                     } else {
                         out.append(word);
@@ -638,6 +703,94 @@ public class SiteGen {
                 }
             }
             return out.toString();
+        }
+
+        /** Tags as keywords, attributes as annotations, values as strings. */
+        static String xml(String code) {
+            var out = new StringBuilder();
+            int i = 0;
+            int n = code.length();
+            while (i < n) {
+                if (code.startsWith("<!--", i)) {
+                    int end = code.indexOf("-->", i);
+                    end = end < 0 ? n : end + 3;
+                    out.append("<span class=\"c-com\">").append(Markdown.escape(code.substring(i, end)))
+                            .append("</span>");
+                    i = end;
+                } else if (code.charAt(i) == '<') {
+                    int end = code.indexOf('>', i);
+                    end = end < 0 ? n : end + 1;
+                    out.append(xmlTag(code.substring(i, end)));
+                    i = end;
+                } else {
+                    int end = code.indexOf('<', i);
+                    if (end < 0) end = n;
+                    out.append(Markdown.escape(code.substring(i, end)));
+                    i = end;
+                }
+            }
+            return out.toString();
+        }
+
+        static String xmlTag(String tag) {
+            var m = java.util.regex.Pattern
+                    .compile("^(</?)([\\w:.-]+)|([\\w:.-]+)(=)(\"[^\"]*\")|(\"[^\"]*\")")
+                    .matcher(tag);
+            var out = new StringBuilder();
+            int last = 0;
+            while (m.find()) {
+                out.append(Markdown.escape(tag.substring(last, m.start())));
+                if (m.group(2) != null) {
+                    out.append(Markdown.escape(m.group(1)))
+                            .append("<span class=\"c-kw\">").append(Markdown.escape(m.group(2))).append("</span>");
+                } else if (m.group(3) != null) {
+                    out.append("<span class=\"c-ann\">").append(Markdown.escape(m.group(3))).append("</span>")
+                            .append("=")
+                            .append("<span class=\"c-str\">").append(Markdown.escape(m.group(5))).append("</span>");
+                } else {
+                    out.append("<span class=\"c-str\">").append(Markdown.escape(m.group(6))).append("</span>");
+                }
+                last = m.end();
+            }
+            out.append(Markdown.escape(tag.substring(last)));
+            return out.toString();
+        }
+
+        /** Keys as keywords, values plain, quoted values as strings. */
+        static String yaml(String code) {
+            var out = new StringBuilder();
+            for (var line : code.split("\n", -1)) {
+                if (!out.isEmpty()) {
+                    out.append('\n');
+                }
+                var s = line.stripLeading();
+                if (s.startsWith("#")) {
+                    out.append("<span class=\"c-com\">").append(Markdown.escape(line)).append("</span>");
+                    continue;
+                }
+                var m = java.util.regex.Pattern.compile("^(\\s*(?:- )?)([\\w.-]+)(:)(.*)$").matcher(line);
+                if (m.matches()) {
+                    out.append(m.group(1))
+                            .append("<span class=\"c-kw\">").append(Markdown.escape(m.group(2))).append("</span>")
+                            .append(":")
+                            .append(yamlValue(m.group(4)));
+                } else {
+                    out.append(Markdown.escape(line));
+                }
+            }
+            return out.toString();
+        }
+
+        static String yamlValue(String value) {
+            var stripped = value.strip();
+            if (stripped.length() >= 2
+                    && (stripped.startsWith("\"") && stripped.endsWith("\"")
+                        || stripped.startsWith("'") && stripped.endsWith("'"))) {
+                int pad = value.indexOf(stripped.charAt(0));
+                return value.substring(0, pad) + "<span class=\"c-str\">"
+                        + Markdown.escape(stripped) + "</span>";
+            }
+            return Markdown.escape(value);
         }
     }
 
