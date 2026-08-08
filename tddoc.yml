@@ -4,6 +4,7 @@ name: tddoc
 tagline: test-driven documentation: proven, not promised
 repo: https://github.com/tddoc/tddoc
 glyph: "✓"
+theme: brutalist
 docs: src/test/java/dev/tddoc/docs
 javadoc: build/docs/javadoc
 install: |

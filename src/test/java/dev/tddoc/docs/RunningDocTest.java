@@ -126,7 +126,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// - `--version`, `--prefix`, `--channel` — versioned deploys: root for the
 ///   latest release, `v/x.y.z/` for frozen snapshots, `next/` for main.
 /// - `--theme` — built-in look: `rubric` (default), `manuscript`,
-///   `terminal`, `academic`, `plain`, `slate` — see the
+///   `terminal`, `academic`, `plain`, `slate`, `brutalist` — see the
 ///   [theming guide](../theming/index.html).
 /// - `--css` — a file appended after the built-in sheet. The sheet is built
 ///   on CSS custom properties, so a few `:root` variable overrides rebrand

@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /// | `academic` | Black on white, one dark-red accent, paper-like |
 /// | `plain` | System fonts, neutral blue, no webfont requests |
 /// | `slate` | Cool grays, restrained blue, corporate-neutral |
+/// | `brutalist` | Béton brut: concrete grays, rust accent, hard edges |
 ///
 /// ## Roll your own with --css
 ///
@@ -129,7 +130,7 @@ class ThemingDocTest {
         Path docs = Files.createDirectories(tmp.resolve("docs"));
         Files.writeString(docs.resolve("SampleDocTest.java"), sampleDocTest());
 
-        for (var theme : List.of("rubric", "manuscript", "terminal", "academic", "plain", "slate")) {
+        for (var theme : List.of("rubric", "manuscript", "terminal", "academic", "plain", "slate", "brutalist")) {
             Path out = tmp.resolve(theme);
             SiteGen.main(new String[]{
                     "--docs", docs.toString(),
